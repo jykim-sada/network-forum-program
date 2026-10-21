@@ -130,7 +130,11 @@ function doGet(e) {
   var page = (e && e.parameter && e.parameter.page) ? String(e.parameter.page).toLowerCase() : 'start';
   if (page === 'push') return pushLine_(e);                             // 리허설 입력 통로 (시트 메뉴에서 열었을 때만)
   if (page === 'snapshot') return ContentService.createTextOutput(JSON.stringify(getSnapshot(0))).setMimeType(ContentService.MimeType.JSON);   // 읽기 전용: 스크린이 받는 것과 같은 스냅샷(스토리보드·점검용). 쓰기 없음
-  if (e && e.parameter && e.parameter.api === '1') return apiCall_(e.parameter.fn, e.parameter.args);   // JSON API(GET): Vercel 에서 띄운 화면이 읽기(getSnapshot 긴 폴링)에 쓴다 (v3.12)
+  if (e && e.parameter && e.parameter.api === '1') {   // JSON API(GET): 읽기(getSnapshot 긴 폴링)만 — 쓰기·운영진 함수는 POST 로만(주소창·링크 미리보기가 GET 을 그냥 실행하므로) (v3.12.1)
+    var gfn = String(e.parameter.fn || '');
+    if (!API_GET_FNS[gfn]) return ContentService.createTextOutput(JSON.stringify({ __error: 'GET 은 읽기(getSnapshot)만 됩니다. 쓰기는 POST 로' })).setMimeType(ContentService.MimeType.JSON);
+    return apiCall_(gfn, e.parameter.args);
+  }
   var map = { start: ['Start', '안내'], phone: ['Phone', '오늘의 한줄'], screen: ['Screen', '스크린'], recorder: ['Recorder', '기록자'], admin: ['Admin', '운영진 콘솔'], print: ['Print', '테이블 QR 인쇄'] };
   if (!map[page]) page = 'start';
   ensureSheets_();
@@ -148,6 +152,7 @@ function include(name) { return HtmlService.createHtmlOutputFromFile(name).getCo
 /* ---- JSON API (v3.12): 화면을 Vercel 등 다른 서버에서 띄울 때 google.script.run 대신 fetch 로 부른다.
  *  허용 목록의 공개 함수만, 인자는 JSON 배열. PIN 검사는 각 admin 함수 안에서 그대로. 오류는 {__error} 로 돌려 클라이언트의 실패 처리로 간다.
  *  읽기(getSnapshot)는 GET ?api=1&fn=&args=, 쓰기는 POST(본문 {fn,args}, text/plain 이라 브라우저 사전 요청 없음). */
+var API_GET_FNS = { getSnapshot: 1 };   // GET 으로 허용하는 읽기 함수
 var API_FNS = { getSnapshot: 1, addLine: 1, updateLine: 1, deleteLine: 1, markDone: 1, setEditing: 1, saveRecord: 1, screenReport: 1, adminCheckPin: 1, adminSetState: 1, adminSetProgram: 1, adminAnalyze: 1, adminReset: 1, adminFillDemo: 1, adminHideLine: 1, adminRefresh: 1 };
 function doPost(e) {
   var body = {}; try { body = JSON.parse((e && e.postData && e.postData.contents) || '{}') || {}; } catch (err) { body = {}; }
@@ -344,9 +349,11 @@ function getPin_() {   // 캐시 거울(5분): 콘솔 호출마다 속성을 읽
   v = PropertiesService.getScriptProperties().getProperty('ADMIN_PIN') || DEFAULT_PIN; try { c.put('PIN', v, 300); } catch (e2) {} return v;
 }
 function checkPin_(pin) {
-  var cache = CacheService.getScriptCache(); var fails = 0; try { fails = Number(cache.get('PINFAIL') || 0); } catch (e) {}
-  if (fails >= 8) throw new Error('PIN 입력이 너무 많이 틀렸습니다. 1분 뒤 다시 시도해 주세요');
-  if (String(pin || '') !== getPin_()) { try { cache.put('PINFAIL', String(fails + 1), 60); } catch (e2) {} throw new Error('PIN 이 맞지 않습니다'); }
+  if (String(pin || '') === getPin_()) return;   // 맞는 PIN 은 언제나 통과 — 전역 실패 카운터가 운영진을 막지 못하게(익명 호출로 틀린 PIN 을 반복해 콘솔을 잠그던 길 차단, v3.12.1)
+  var cache = CacheService.getScriptCache(), fails = 1;
+  try { fails = Number(cache.get('PINFAIL') || 0) + 1; cache.put('PINFAIL', String(fails), 600); } catch (e) {}
+  if (fails === 8 || fails % 50 === 0) console.warn('운영진 PIN 틀림 ' + fails + '회(10분 창) — 무차별 대입 가능성. 시트 메뉴 「운영진 PIN 설정」으로 길고 추측 어려운 PIN 을 쓰세요');
+  throw new Error(fails >= 8 ? 'PIN 이 맞지 않습니다 (틀린 시도가 많습니다 — 운영진이 아니면 그만두세요)' : 'PIN 이 맞지 않습니다');
 }
 function nowHM_() { return Utilities.formatDate(new Date(), TZ, 'HH:mm'); }
 function nowStr_() { return Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm:ss'); }

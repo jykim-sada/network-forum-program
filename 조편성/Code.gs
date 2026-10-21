@@ -157,7 +157,7 @@ function refresh_(reset) {
     var responses = parseResponses_(surSh.getDataRange().getValues());
     var ss = openBook_(cfg['결과를 쓸 시트 ID'], '결과를 쓸(신청 명단)', '편집자');
     ensureTabs_(ss);
-    var res = runAll_(applicants, responses, reset ? {} : readPrev_(ss), cap, cfg._groups);
+    var res = runAll_(applicants, responses, reset ? {} : readPrev_(ss), cap, cfg._groups, !!reset);
     writeRoster_(ss, res);
     writeTables_(ss, res, cap);
     writeMerged_(ss, res);
@@ -271,7 +271,7 @@ function writeMerged_(ss, res) {
 
 function writeIssues_(ss, res) {
   var sh = sheet_(ss, TAB.issues, 4); reset_(sh);
-  var order = ['정원 초과', '자리 없음', '동석 자리 없음', '동석 이름 확인', '같은 주제 두 번', '테이블 번호 확인', '동명이인', '이름 다름', '연락처 다름', '설문만 있음', '신청 명단 중복', '설문 중복 응답', '신청 명단에 불참 표시', '순위 중복·누락', '연락처 없음', '동석 그룹', '운영진 메모'];
+  var order = ['정원 초과', '자리 없음', '동석 자리 없음', '동석 이름 확인', '자리 맞바꿈', '같은 주제 두 번', '테이블 번호 확인', '동명이인', '이름 다름', '연락처 다름', '설문만 있음', '신청 명단 중복', '설문 중복 응답', '신청 명단에 불참 표시', '순위 중복·누락', '연락처 없음', '동석 그룹', '운영진 메모'];
   var list = res.issues.slice().sort(function (a, b) { return order.indexOf(a.kind) - order.indexOf(b.kind); });
   var rows = [['구분', '이름', '연락처', '내용', '처리 메모(자유 기록 — 새로 고침 때 지워짐)']];
   list.forEach(function (i) { rows.push([i.kind, i.name, i.phone, i.detail, '']); });
@@ -301,7 +301,7 @@ function writeGuide_(ss, res, cap, cfg, appSh, surSh, nApp, nResp) {
     ['경기도 중장년 네트워크 포럼 · 조편성 (자동)', '', '', ''],
     ['마지막 새로 고침', now, '', ''],
     ['', '', '', ''],
-    ['합친 인원', c.total + '명', '신청 명단 ' + nApp + '행 · 설문 ' + nResp + '건', ''],
+    ['전체 인원(제출 여부 무관)', c.total + '명', '신청 명단 ' + nApp + '행 + 설문 ' + nResp + '건을 사람 단위로 합친 수', ''],
     ['설문 제출 · 참석', c.target + '명', '배정 완료 ' + c.assigned + '명 → 「' + TAB.roster + '」「' + TAB.tables + '」 탭' + (c.forced ? ' (설문 미제출 동석 지정 ' + c.forced + '명 포함)' : ''), ''],
     ['설문 미제출', c.noSurvey + '명', '「' + TAB.merged + '」 탭 상태 「설문 미제출」 — 답하면 다음 새로 고침 때 자동 배정', ''],
     ['불참', c.absent + '명', '설문 「참석이 어렵습니다」 또는 신청 명단 「불참」', ''],

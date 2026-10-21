@@ -244,7 +244,7 @@ function applyGroups_(people, groupTexts) {
  * cap : 테이블당 정원
  * 반환: { assign: { key: {t1, t2, how} }, issues: [...] , load }
  */
-function assignTables_(people, prev, cap, groups) {
+function assignTables_(people, prev, cap, groups, optimize) {
   var issues = [], assign = {};
   var tLoad = {}, tOrg = {}, tSigun = {};
   for (var t = 1; t <= 9; t++) { tLoad[t] = { 1: 0, 2: 0 }; tOrg[t] = { 1: {}, 2: {} }; tSigun[t] = { 1: {}, 2: {} }; }
@@ -265,6 +265,48 @@ function assignTables_(people, prev, cap, groups) {
     })[0];
   }
   function iss(p, kind, detail) { issues.push({ name: p.name, phone: fmtPhone_(p.phone), kind: kind, detail: detail }); }
+  function take(p, table, rd) {
+    tLoad[table][rd]--;
+    var o = orgKey(p); if (o && tOrg[table][rd][o]) tOrg[table][rd][o]--;
+    if (p.sigun && tSigun[table][rd][p.sigun]) tSigun[table][rd][p.sigun]--;
+  }
+  function rankOf(p, id) { return p.ranks[id] == null ? 5 : p.ranks[id]; }
+
+  /**
+   * 정원이 거의 꽉 차서 빈자리가 한 주제(X)에만 남은 경우: 이미 앉은 사람 q 한 명을 X 로 옮기고
+   * q 가 비운 다른 주제 자리에 p 를 앉힌다. q 는 X 를 높은 순위로 고른 사람부터(이번에 새로 앉은 사람 우선), 동석 그룹은 건드리지 않음.
+   * 옮겨진 사람은 확인필요 「자리 맞바꿈」에 이름이 남는다.
+   */
+  function repair(p, byKeyAll) {
+    var best = null;
+    TOPICS.forEach(function (X) {
+      if (topicLoad(X, 1) >= topicCap(X) || topicLoad(X, 2) >= topicCap(X)) return;   // X 가 두 라운드 모두 비어 있어야 함
+      if (p.exclude.indexOf(X.id) >= 0) return;
+      Object.keys(assign).forEach(function (k) {
+        var a = assign[k], q = byKeyAll[k];
+        if (!q || a.group || q.exclude.indexOf(X.id) >= 0) return;
+        ROUNDS.forEach(function (rd) {
+          var mine = topicOfTable_(rd === 1 ? a.t1 : a.t2), other = topicOfTable_(rd === 1 ? a.t2 : a.t1);
+          if (mine.id === X.id || other.id === X.id || p.exclude.indexOf(mine.id) >= 0) return;
+          // q: rd 라운드를 mine → X 로. p: rd 라운드 mine, 다른 라운드 X
+          var cost = (rankOf(q, X.id) - rankOf(q, mine.id)) * 10 + rankOf(p, mine.id) + rankOf(p, X.id) + (a.kept ? 1 : 0);
+          if (!best || cost < best.cost) best = { cost: cost, k: k, q: q, rd: rd, X: X, mine: mine };
+        });
+      });
+    });
+    if (!best) return false;
+    var a = assign[best.k], q = best.q, rd = best.rd, oldT = rd === 1 ? a.t1 : a.t2;
+    take(q, oldT, rd);
+    var newT = pickTable(q, best.X, rd); put(q, newT, rd);
+    if (rd === 1) a.t1 = newT; else a.t2 = newT;
+    a.how = howLabel_(q, topicOfTable_(a.t1).id, topicOfTable_(a.t2).id);
+    var pt = pickTable(p, best.mine, rd); put(p, pt, rd);
+    var po = pickTable(p, best.X, rd === 1 ? 2 : 1); put(p, po, rd === 1 ? 2 : 1);
+    var t1 = rd === 1 ? pt : po, t2 = rd === 1 ? po : pt;
+    assign[p.key] = { t1: t1, t2: t2, how: howLabel_(p, topicOfTable_(t1).id, topicOfTable_(t2).id), kept: false };
+    iss(p, '자리 맞바꿈', '빈자리가 주제' + best.X.id + '에만 남아 ' + q.name + ' 님의 ' + rd + '라운드를 주제' + best.mine.id + ' → 주제' + best.X.id + '로 옮기고 그 자리에 배정');
+    return true;
+  }
 
   var targets = people.filter(function (p) { return p.status === '배정 대상'; });
   var byKey = {}; people.forEach(function (p) { byKey[p.key] = p; });
@@ -335,7 +377,7 @@ function assignTables_(people, prev, cap, groups) {
     mem.forEach(function (p) {
       put(p, t1, 1); put(p, t2, 2);
       var A = topicOfTable_(t1), B = topicOfTable_(t2);
-      assign[p.key] = { t1: t1, t2: t2, how: '동석 · ' + (p.inSurvey ? howLabel_(p, A.id, B.id) : '설문 미제출'), kept: !!same };
+      assign[p.key] = { t1: t1, t2: t2, how: '동석 · ' + (p.inSurvey ? howLabel_(p, A.id, B.id) : '설문 미제출'), kept: !!same, group: g.no };
     });
     issues.push({ name: names, phone: '', kind: '동석 그룹', detail: '동석 그룹 ' + g.no + ' (' + mem.length + '명) → 1라운드 ' + t1 + '번 · 2라운드 ' + t2 + '번 테이블' +
       (same ? ' (유지)' : '') + '. 조편성 탭에서 한 사람만 바꾸면 다음 새로 고침 때 그룹 전체가 다시 배정됨' });
@@ -375,15 +417,103 @@ function assignTables_(people, prev, cap, groups) {
       assign[p.key] = { t1: t1, t2: t2, how: howLabel_(p, o[0].id, o[1].id), kept: false };
       done = true;
     }
-    if (!done) iss(p, '자리 없음', '희망 주제 어느 조합도 정원이 남지 않음 — 정원을 늘리거나 손으로 배정');
+    if (!done && !repair(p, byKey)) iss(p, '자리 없음', '모든 테이블이 꽉 찼거나 맞바꿀 자리가 없음 — 정원을 늘리거나 손으로 배정');
   });
 
-  // 4) 정원 초과 점검 (손으로 고친 경우)
+  // 4) 전체 최적화(전체 다시 배정 때): 1·2순위 그대로 받는 사람 최대 → 4순위 받는 사람 최소 → 순위 합 최소
+  if (optimize) {
+    var st = optimizeSeats_(assign, byKey, tOrg, orgKey);
+    if (st.moved) issues.push({ name: '', phone: '', kind: '최적화', detail: '자리 맞교환 ' + st.moved + '번으로 1·2순위 그대로 ' + st.before.ok12 + '명 → ' + st.after.ok12 + '명, 4순위 포함 ' + st.before.has4 + '명 → ' + st.after.has4 + '명 (동석 그룹은 그대로)' });
+    Object.keys(assign).forEach(function (k) {
+      var a = assign[k], p = byKey[k]; if (a.group) return;
+      a.how = howLabel_(p, topicOfTable_(a.t1).id, topicOfTable_(a.t2).id);
+    });
+  }
+
+  // 5) 정원 초과 점검 (손으로 고친 경우)
   for (var tb = 1; tb <= 9; tb++) ROUNDS.forEach(function (rd) {
     if (tLoad[tb][rd] > cap) issues.push({ name: '', phone: '', kind: '정원 초과', detail: rd + '라운드 ' + tb + '번 테이블 ' + tLoad[tb][rd] + '명 (정원 ' + cap + '명)' });
   });
 
   return { assign: assign, issues: issues, load: tLoad };
+}
+
+/* ---------- 전체 최적화 ---------- */
+
+/** 한 사람이 주제 A·B 를 받았을 때의 비용. 1·2순위 그대로가 아니면 1,000,000, 4순위(또는 순위 없음)가 끼면 1,000, 나머지는 순위 합 */
+function seatCost_(p, A, B) {
+  if (A === B || p.exclude.indexOf(A) >= 0 || p.exclude.indexOf(B) >= 0) return 1e9;
+  var ra = p.ranks[A] == null ? 5 : p.ranks[A], rb = p.ranks[B] == null ? 5 : p.ranks[B];
+  var best = TOPICS.map(function (t) { return p.ranks[t.id] == null ? 5 : p.ranks[t.id]; }).sort(function (x, y) { return x - y; });
+  var ok12 = Math.min(ra, rb) === best[0] && Math.max(ra, rb) === best[1];
+  return (ok12 ? 0 : 1e6) + (Math.max(ra, rb) >= 4 ? 1e3 : 0) + ra + rb;
+}
+
+/**
+ * 같은 라운드의 자리(테이블)를 서로 바꾸는 방식으로 전체 비용을 줄인다. 테이블별 인원은 바뀌지 않는다.
+ *  - 2명 맞교환: p·q 가 한 라운드 자리를 바꿈
+ *  - 3명 돌리기: p 가 1라운드는 q 와, 2라운드는 s 와 바꿈 (p 의 두 주제가 한꺼번에 바뀌는 경우)
+ * 동석 그룹은 건드리지 않는다. 끝으로 같은 주제 안 테이블끼리 같은 소속이 겹치지 않게 다시 섞는다.
+ */
+function optimizeSeats_(assign, byKey, tOrg, orgKey) {
+  var keys = Object.keys(assign).filter(function (k) { return !assign[k].group; });
+  var n = keys.length, P = keys.map(function (k) { return byKey[k]; }), A = keys.map(function (k) { return assign[k]; });
+  var T = A.map(function (a) { return [topicOfTable_(a.t1).id, topicOfTable_(a.t2).id]; });
+  var C = P.map(function (p) {   // C[i][A][B] 미리 계산
+    var m = {}; TOPICS.forEach(function (x) { m[x.id] = {}; TOPICS.forEach(function (y) { m[x.id][y.id] = seatCost_(p, x.id, y.id); }); }); return m;
+  });
+  function cost(i, a, b) { return C[i][a][b]; }
+  function stats() {
+    var s = { ok12: 0, has4: 0 };
+    for (var i = 0; i < n; i++) { var c = cost(i, T[i][0], T[i][1]); if (c < 1e6) s.ok12++; if (c % 1e6 >= 1e3) s.has4++; }
+    return s;
+  }
+  function swapRound(i, j, rd) {   // rd 0=1라운드, 1=2라운드
+    var f = rd === 0 ? 't1' : 't2', tmp = A[i][f]; A[i][f] = A[j][f]; A[j][f] = tmp;
+    var tt = T[i][rd]; T[i][rd] = T[j][rd]; T[j][rd] = tt;
+  }
+  var before = stats(), moved = 0;
+  for (var pass = 0; pass < 30; pass++) {
+    var improved = false;
+    // 2명 맞교환
+    for (var i = 0; i < n; i++) for (var j = i + 1; j < n; j++) for (var rd = 0; rd < 2; rd++) {
+      if (T[i][rd] === T[j][rd]) continue;
+      var ni = rd === 0 ? [T[j][0], T[i][1]] : [T[i][0], T[j][1]];
+      var nj = rd === 0 ? [T[i][0], T[j][1]] : [T[j][0], T[i][1]];
+      var d = cost(i, ni[0], ni[1]) + cost(j, nj[0], nj[1]) - cost(i, T[i][0], T[i][1]) - cost(j, T[j][0], T[j][1]);
+      if (d < 0) { swapRound(i, j, rd); moved++; improved = true; }
+    }
+    // 3명 돌리기: i 는 q 의 1라운드 주제, s 의 2라운드 주제를 받고, q·s 는 i 의 원래 자리를 받음
+    for (var i2 = 0; i2 < n; i2++) {
+      var c0 = cost(i2, T[i2][0], T[i2][1]);
+      if (c0 < 1e6) continue;   // 이미 1·2순위 그대로면 건너뜀
+      for (var q = 0; q < n; q++) {
+        if (q === i2 || T[q][0] === T[i2][0]) continue;
+        var cq0 = cost(q, T[q][0], T[q][1]), cqN = cost(q, T[i2][0], T[q][1]);
+        for (var s = 0; s < n; s++) {
+          if (s === i2 || s === q || T[s][1] === T[i2][1]) continue;
+          var d2 = cost(i2, T[q][0], T[s][1]) + cqN + cost(s, T[s][0], T[i2][1]) - c0 - cq0 - cost(s, T[s][0], T[s][1]);
+          if (d2 < 0) { swapRound(i2, q, 0); swapRound(i2, s, 1); moved += 2; improved = true; c0 = cost(i2, T[i2][0], T[i2][1]); break; }
+        }
+      }
+    }
+    if (!improved) break;
+  }
+  // 같은 주제·라운드 안 테이블끼리: 같은 소속이 한 테이블에 덜 모이도록 자리 바꾸기(주제는 그대로)
+  var orgOf = P.map(function (p) { return orgKey(p); });
+  for (var rd2 = 0; rd2 < 2; rd2++) {
+    var f2 = rd2 === 0 ? 't1' : 't2';
+    var dup = function (i, t) { var c = 0; for (var x = 0; x < n; x++) if (x !== i && A[x][f2] === t && orgOf[x] && orgOf[x] === orgOf[i]) c++; return c; };
+    for (var it = 0; it < 3; it++) for (var i3 = 0; i3 < n; i3++) for (var j3 = i3 + 1; j3 < n; j3++) {
+      if (A[i3][f2] === A[j3][f2] || T[i3][rd2] !== T[j3][rd2] || orgOf[i3] === orgOf[j3]) continue;
+      var ti = A[i3][f2], tj = A[j3][f2];
+      var now = dup(i3, ti) + dup(j3, tj);
+      A[i3][f2] = tj; A[j3][f2] = ti;
+      var aft = dup(i3, tj) + dup(j3, ti);
+      if (aft >= now) { A[i3][f2] = ti; A[j3][f2] = tj; }
+    }
+  }
+  return { moved: moved, before: before, after: stats() };
 }
 
 /** 배정된 두 주제가 몇 순위였는지 */
@@ -452,10 +582,10 @@ function buildOutputs_(people, assign, cap) {
 }
 
 /** 한 번에: 합치기 → 배정 → 표 */
-function runAll_(applicants, responses, prev, cap, groupTexts) {
+function runAll_(applicants, responses, prev, cap, groupTexts, optimize) {
   var m = mergePeople_(applicants, responses);
   var g = applyGroups_(m.people, groupTexts);
-  var a = assignTables_(m.people, prev, cap, g.groups);
+  var a = assignTables_(m.people, prev, cap, g.groups, optimize);
   var out = buildOutputs_(m.people, a.assign, cap);
   var count = { total: m.people.length, target: 0, noSurvey: 0, absent: 0, forced: 0, assigned: Object.keys(a.assign).length };
   m.people.forEach(function (p) {

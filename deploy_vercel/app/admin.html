@@ -238,7 +238,7 @@ var API = (function () {
       ? fetch(CFG.url + '?api=1&fn=' + encodeURIComponent(fn) + '&args=' + encodeURIComponent(JSON.stringify(args || [])), { method: 'GET', cache: 'no-store', credentials: 'omit' })
       : fetch(CFG.url, { method: 'POST', cache: 'no-store', credentials: 'omit', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ fn: fn, args: args || [] }) });
     p.then(function (r) { if (!r.ok) throw new Error('서버 응답 ' + r.status); return r.json(); })
-     .then(function (o) { if (o && typeof o === 'object' && o.__error) { fail(new Error(o.__error)); return; } ok(o); })
+     .then(function (o) { if (o && typeof o === 'object' && o.__error) { var err = new Error(o.__error); err.remote = true; fail(err); return; } ok(o); })   // err.remote: 서버가 보낸 오류(통신 오류와 구분)
      .catch(function (e) { fail(e); });
   }
   function call(fn, args, cb, eb) {
@@ -719,7 +719,7 @@ function saveProgramTo(p, btn, doneMsg, after) {
 /* ---- PIN 입구 ---- */
 function enter(pin) {
   API.call('adminCheckPin', [pin], function (r) { PIN = pin; try { sessionStorage.setItem('gwb-pin', pin); } catch (e) {} hasKey = !!(r && r.hasKey); document.getElementById('gate').style.display = 'none'; startPolling(2000, function () { if (typing()) { pendingRender = true; return; } render(); }); },
-    function () { document.getElementById('gateErr').textContent = 'PIN 이 맞지 않습니다'; });
+    function (e) { var m = (e && e.message) ? String(e.message) : ''; var fromServer = !!(e && e.remote) || /PIN/.test(m); document.getElementById('gateErr').textContent = fromServer ? m : '서버에 연결하지 못했습니다 · 인터넷을 확인한 뒤 다시 눌러 주세요'; });   // 서버 문구(틀림·잠김)와 통신 오류를 구분 (v3.12.1)
 }
 document.getElementById('gateForm').onsubmit = function (e) { e.preventDefault(); enter(document.getElementById('pin').value.trim()); };
 if (PIN) enter(PIN); else if (API.isLocal) enter('local');

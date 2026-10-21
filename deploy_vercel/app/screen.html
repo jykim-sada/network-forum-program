@@ -399,7 +399,7 @@ var API = (function () {
       ? fetch(CFG.url + '?api=1&fn=' + encodeURIComponent(fn) + '&args=' + encodeURIComponent(JSON.stringify(args || [])), { method: 'GET', cache: 'no-store', credentials: 'omit' })
       : fetch(CFG.url, { method: 'POST', cache: 'no-store', credentials: 'omit', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ fn: fn, args: args || [] }) });
     p.then(function (r) { if (!r.ok) throw new Error('서버 응답 ' + r.status); return r.json(); })
-     .then(function (o) { if (o && typeof o === 'object' && o.__error) { fail(new Error(o.__error)); return; } ok(o); })
+     .then(function (o) { if (o && typeof o === 'object' && o.__error) { var err = new Error(o.__error); err.remote = true; fail(err); return; } ok(o); })   // err.remote: 서버가 보낸 오류(통신 오류와 구분)
      .catch(function (e) { fail(e); });
   }
   function call(fn, args, cb, eb) {
