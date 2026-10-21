@@ -126,6 +126,7 @@ function normalizeProgram_(p) {
 function doGet(e) {
   var page = (e && e.parameter && e.parameter.page) ? String(e.parameter.page).toLowerCase() : 'start';
   if (page === 'push') return pushLine_(e);                             // 리허설 입력 통로 (시트 메뉴에서 열었을 때만)
+  if (page === 'snapshot') return ContentService.createTextOutput(JSON.stringify(getSnapshot(0))).setMimeType(ContentService.MimeType.JSON);   // 읽기 전용: 스크린이 받는 것과 같은 스냅샷(스토리보드·점검용). 쓰기 없음
   var map = { start: ['Start', '안내'], phone: ['Phone', '오늘의 한줄'], screen: ['Screen', '스크린'], recorder: ['Recorder', '기록자'], admin: ['Admin', '운영진 콘솔'], print: ['Print', '테이블 QR 인쇄'] };
   if (!map[page]) page = 'start';
   ensureSheets_();
