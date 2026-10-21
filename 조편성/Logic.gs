@@ -420,9 +420,9 @@ function assignTables_(people, prev, cap, groups, optimize) {
     if (!done && !repair(p, byKey)) iss(p, '자리 없음', '모든 테이블이 꽉 찼거나 맞바꿀 자리가 없음 — 정원을 늘리거나 손으로 배정');
   });
 
-  // 4) 전체 최적화(전체 다시 배정 때): 1·2순위 그대로 받는 사람 최대 → 4순위 받는 사람 최소 → 순위 합 최소
+  // 4) 전체 최적화(전체 다시 배정 때). optimize = '12'(1·2순위 그대로 최대 → 4순위 최소) 또는 '4'(4순위 최소 → 1·2순위 최대)
   if (optimize) {
-    var st = optimizeSeats_(assign, byKey, tOrg, orgKey);
+    var st = optimizeSeats_(assign, byKey, tOrg, orgKey, optimize);
     if (st.moved) issues.push({ name: '', phone: '', kind: '최적화', detail: '자리 맞교환 ' + st.moved + '번으로 1·2순위 그대로 ' + st.before.ok12 + '명 → ' + st.after.ok12 + '명, 4순위 포함 ' + st.before.has4 + '명 → ' + st.after.has4 + '명 (동석 그룹은 그대로)' });
     Object.keys(assign).forEach(function (k) {
       var a = assign[k], p = byKey[k]; if (a.group) return;
@@ -440,13 +440,21 @@ function assignTables_(people, prev, cap, groups, optimize) {
 
 /* ---------- 전체 최적화 ---------- */
 
-/** 한 사람이 주제 A·B 를 받았을 때의 비용. 1·2순위 그대로가 아니면 1,000,000, 4순위(또는 순위 없음)가 끼면 1,000, 나머지는 순위 합 */
-function seatCost_(p, A, B) {
-  if (A === B || p.exclude.indexOf(A) >= 0 || p.exclude.indexOf(B) >= 0) return 1e9;
+/**
+ * 한 사람이 주제 A·B 를 받았을 때의 비용(작을수록 좋음).
+ * mode '12': 1·2순위 그대로가 아니면 1,000,000 → 4순위(또는 순위 없음)가 끼면 1,000 → 순위 합
+ * mode '4' : 4순위가 끼면 1,000,000 → 1·2순위 그대로가 아니면 1,000 → 순위 합
+ */
+function seatInfo_(p, A, B) {
   var ra = p.ranks[A] == null ? 5 : p.ranks[A], rb = p.ranks[B] == null ? 5 : p.ranks[B];
   var best = TOPICS.map(function (t) { return p.ranks[t.id] == null ? 5 : p.ranks[t.id]; }).sort(function (x, y) { return x - y; });
-  var ok12 = Math.min(ra, rb) === best[0] && Math.max(ra, rb) === best[1];
-  return (ok12 ? 0 : 1e6) + (Math.max(ra, rb) >= 4 ? 1e3 : 0) + ra + rb;
+  return { ok12: Math.min(ra, rb) === best[0] && Math.max(ra, rb) === best[1], has4: Math.max(ra, rb) >= 4, sum: ra + rb };
+}
+function seatCost_(p, A, B, mode) {
+  if (A === B || p.exclude.indexOf(A) >= 0 || p.exclude.indexOf(B) >= 0) return 1e9;
+  var s = seatInfo_(p, A, B);
+  if (mode === '4') return (s.has4 ? 1e6 : 0) + (s.ok12 ? 0 : 1e3) + s.sum;
+  return (s.ok12 ? 0 : 1e6) + (s.has4 ? 1e3 : 0) + s.sum;
 }
 
 /**
@@ -455,17 +463,17 @@ function seatCost_(p, A, B) {
  *  - 3명 돌리기: p 가 1라운드는 q 와, 2라운드는 s 와 바꿈 (p 의 두 주제가 한꺼번에 바뀌는 경우)
  * 동석 그룹은 건드리지 않는다. 끝으로 같은 주제 안 테이블끼리 같은 소속이 겹치지 않게 다시 섞는다.
  */
-function optimizeSeats_(assign, byKey, tOrg, orgKey) {
+function optimizeSeats_(assign, byKey, tOrg, orgKey, mode) {
   var keys = Object.keys(assign).filter(function (k) { return !assign[k].group; });
   var n = keys.length, P = keys.map(function (k) { return byKey[k]; }), A = keys.map(function (k) { return assign[k]; });
   var T = A.map(function (a) { return [topicOfTable_(a.t1).id, topicOfTable_(a.t2).id]; });
   var C = P.map(function (p) {   // C[i][A][B] 미리 계산
-    var m = {}; TOPICS.forEach(function (x) { m[x.id] = {}; TOPICS.forEach(function (y) { m[x.id][y.id] = seatCost_(p, x.id, y.id); }); }); return m;
+    var m = {}; TOPICS.forEach(function (x) { m[x.id] = {}; TOPICS.forEach(function (y) { m[x.id][y.id] = seatCost_(p, x.id, y.id, mode); }); }); return m;
   });
   function cost(i, a, b) { return C[i][a][b]; }
   function stats() {
     var s = { ok12: 0, has4: 0 };
-    for (var i = 0; i < n; i++) { var c = cost(i, T[i][0], T[i][1]); if (c < 1e6) s.ok12++; if (c % 1e6 >= 1e3) s.has4++; }
+    for (var i = 0; i < n; i++) { var x = seatInfo_(P[i], T[i][0], T[i][1]); if (x.ok12) s.ok12++; if (x.has4) s.has4++; }
     return s;
   }
   function swapRound(i, j, rd) {   // rd 0=1라운드, 1=2라운드
@@ -486,7 +494,7 @@ function optimizeSeats_(assign, byKey, tOrg, orgKey) {
     // 3명 돌리기: i 는 q 의 1라운드 주제, s 의 2라운드 주제를 받고, q·s 는 i 의 원래 자리를 받음
     for (var i2 = 0; i2 < n; i2++) {
       var c0 = cost(i2, T[i2][0], T[i2][1]);
-      if (c0 < 1e6) continue;   // 이미 1·2순위 그대로면 건너뜀
+      var ci = seatInfo_(P[i2], T[i2][0], T[i2][1]); if (ci.ok12 && !ci.has4) continue;   // 이미 1·2순위 그대로면 건너뜀
       for (var q = 0; q < n; q++) {
         if (q === i2 || T[q][0] === T[i2][0]) continue;
         var cq0 = cost(q, T[q][0], T[q][1]), cqN = cost(q, T[i2][0], T[q][1]);

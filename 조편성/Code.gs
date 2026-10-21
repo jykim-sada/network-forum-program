@@ -17,7 +17,8 @@ var SRC_DEFAULT = {
   '설문 응답 시트 ID': '1UHd10cyEPSDNNlezv2hxzEdImOFG6uL30UxKCO7JoR4',
   '설문 응답 탭 gid': '58738434',
   '테이블당 정원': '8',
-  '결과를 쓸 시트 ID': '1bnLOIeTxLpYNtnYvKA1K_fvonoHGuzxmYK48MMb--cU'
+  '결과를 쓸 시트 ID': '1bnLOIeTxLpYNtnYvKA1K_fvonoHGuzxmYK48MMb--cU',
+  '배정 우선 기준': '1·2순위 우선'   // 또는 '4순위 회피 우선' — 「전체 다시 배정」 때 적용
 };
 // 신청 명단 스프레드시트 안에 붙는 탭. 기존 탭과 겹치지 않게 모두 「조편성」으로 시작한다.
 var TAB = { guide: '조편성 요약', roster: '조편성', tables: '조편성 테이블별', merged: '조편성 제출현황', issues: '조편성 확인필요', paste: '조편성 보드붙여넣기', config: '조편성 설정' };
@@ -29,7 +30,7 @@ function onOpen() {
     .addItem('처음 설정 (한 번만)', 'setup')
     .addItem('지금 새로 고침', 'refreshNow')
     .addSeparator()
-    .addItem('전체 다시 배정…', 'reassignAll')
+    .addItem('전체 다시 배정 (희망 최대 반영)…', 'reassignAll')
     .addSeparator()
     .addItem('자동 새로 고침 켜기 (10분마다)', 'autoOn')
     .addItem('자동 새로 고침 끄기', 'autoOff')
@@ -53,7 +54,7 @@ function refreshNow() {
 
 function reassignAll() {
   var ui = SpreadsheetApp.getUi();
-  var ok = ui.alert('전체 다시 배정', '지금까지의 배정과 손으로 고친 테이블 번호를 모두 지우고 처음부터 다시 배정합니다. 계속할까요?', ui.ButtonSet.YES_NO);
+  var ok = ui.alert('전체 다시 배정', '지금까지의 배정과 손으로 고친 테이블 번호를 모두 지우고, 전체를 보고 희망을 최대한 반영해 다시 배정합니다(「조편성 설정」의 배정 우선 기준 적용). 계속할까요?', ui.ButtonSet.YES_NO);
   if (ok !== ui.Button.YES) return;
   var r = refresh_(true);
   SpreadsheetApp.getActive().toast('배정 ' + r.count.assigned + '명 · 확인필요 ' + r.issues.length + '건', '전체 다시 배정 완료', 5);
@@ -106,13 +107,14 @@ function writeConfig_(cfg, res) {
   rows.push(['마지막 새로 고침', res ? Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd HH:mm') : '(실행 중이거나 오류)']);
   rows.push(['', '']);
   rows.push(['안내', '시트 ID 는 주소의 /d/ 와 /edit 사이, gid 는 주소 끝 gid= 뒤 숫자. 테이블당 정원을 바꾸면 다음 새로 고침부터 적용.']);
+  rows.push(['', '배정 우선 기준: 「1·2순위 우선」(원하는 두 주제 그대로 받는 사람 최대) 또는 「4순위 회피 우선」(4순위 받는 사람 최소). 바꾼 뒤 「전체 다시 배정」을 눌러야 적용.']);
   rows.push(['', '동석 그룹: 이름을 쉼표로 구분해 적으면 1·2라운드 모두 같은 테이블에 앉힘. 설문을 안 낸 사람도 배정함(불참은 제외). 새 그룹은 맨 아래 빈 「동석 그룹」 칸에.']);
   sh.clear();
   sh.getRange(1, 1, rows.length, 2).setNumberFormat('@').setValues(rows);
   styleHead_(sh, 2);
   sh.getRange(g0 + 1, 1, cfg._groups.length + 1, 2).setBackground('#FFF2CC');
-  sh.getRange(rows.length - 5, 1, 6, 1).setFontWeight('bold');
-  sh.getRange(rows.length - 1, 2, 2, 1).setWrap(true);
+  sh.getRange(rows.length - 6, 1, 7, 1).setFontWeight('bold');
+  sh.getRange(rows.length - 2, 2, 3, 1).setWrap(true);
   sh.setColumnWidth(1, 160); sh.setColumnWidth(2, 520);
 }
 
@@ -157,7 +159,7 @@ function refresh_(reset) {
     var responses = parseResponses_(surSh.getDataRange().getValues());
     var ss = openBook_(cfg['결과를 쓸 시트 ID'], '결과를 쓸(신청 명단)', '편집자');
     ensureTabs_(ss);
-    var res = runAll_(applicants, responses, reset ? {} : readPrev_(ss), cap, cfg._groups, !!reset);
+    var res = runAll_(applicants, responses, reset ? {} : readPrev_(ss), cap, cfg._groups, reset ? (/4/.test(cfg['배정 우선 기준']) ? '4' : '12') : false);
     writeRoster_(ss, res);
     writeTables_(ss, res, cap);
     writeMerged_(ss, res);
@@ -271,7 +273,7 @@ function writeMerged_(ss, res) {
 
 function writeIssues_(ss, res) {
   var sh = sheet_(ss, TAB.issues, 4); reset_(sh);
-  var order = ['정원 초과', '자리 없음', '동석 자리 없음', '동석 이름 확인', '자리 맞바꿈', '같은 주제 두 번', '테이블 번호 확인', '동명이인', '이름 다름', '연락처 다름', '설문만 있음', '신청 명단 중복', '설문 중복 응답', '신청 명단에 불참 표시', '순위 중복·누락', '연락처 없음', '동석 그룹', '운영진 메모'];
+  var order = ['정원 초과', '자리 없음', '최적화', '동석 자리 없음', '동석 이름 확인', '자리 맞바꿈', '같은 주제 두 번', '테이블 번호 확인', '동명이인', '이름 다름', '연락처 다름', '설문만 있음', '신청 명단 중복', '설문 중복 응답', '신청 명단에 불참 표시', '순위 중복·누락', '연락처 없음', '동석 그룹', '운영진 메모'];
   var list = res.issues.slice().sort(function (a, b) { return order.indexOf(a.kind) - order.indexOf(b.kind); });
   var rows = [['구분', '이름', '연락처', '내용', '처리 메모(자유 기록 — 새로 고침 때 지워짐)']];
   list.forEach(function (i) { rows.push([i.kind, i.name, i.phone, i.detail, '']); });
@@ -314,7 +316,7 @@ function writeGuide_(ss, res, cap, cfg, appSh, surSh, nApp, nResp) {
     rows.push([t + '번 (' + tp.hall + ')', '주제' + tp.id + ' ' + tp.name, res.load[t][1] + ' / ' + cap, res.load[t][2] + ' / ' + cap]);
   }
   rows.push(['', '', '', '']);
-  rows.push(['규칙', '1인 2주제(1·2라운드 각 1개). 설문 응답이 빠른 순서로 1·2순위를 먼저 주고, 자리가 없으면 3·4순위로 옮김. 같은 주제의 테이블끼리는 인원을 고르게, 같은 소속은 흩어지게 앉힘. 「조편성 설정」의 동석 그룹은 1·2라운드 모두 같은 테이블(설문 미제출도 배정).', '', '']);
+  rows.push(['규칙', '1인 2주제(1·2라운드 각 1개). 설문 응답이 빠른 순서로 1·2순위를 먼저 주고, 자리가 없으면 3·4순위로 옮김. 같은 주제의 테이블끼리는 인원을 고르게, 같은 소속은 흩어지게 앉힘. 「조편성 설정」의 동석 그룹은 1·2라운드 모두 같은 테이블(설문 미제출도 배정). 「전체 다시 배정」은 전체를 보고 자리를 맞교환해 1·2순위 그대로 받는 사람을 최대로(또는 4순위를 최소로) 만듦.', '', '']);
   rows.push(['고치는 법', '「' + TAB.roster + '」 탭의 1라운드·2라운드 테이블 번호만 바꾸세요. 새로 고침해도 그대로 남습니다. 「조편성 …」 다른 탭은 새로 고침 때 다시 쓰여집니다. 「참석자 명단」 등 원래 탭은 읽기만 합니다.', '', '']);
   rows.push(['새로 고침', '10분마다 자동 + 메뉴 「조편성 → 지금 새로 고침」. 이미 배정된 사람은 움직이지 않고 새 응답자만 빈자리에 들어갑니다.', '', '']);
   rows.push(['원본(읽기만 함)', '신청 명단: ' + appSh.getParent().getName() + ' › ' + appSh.getName(), '', '']);
