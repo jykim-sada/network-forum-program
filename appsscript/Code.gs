@@ -830,7 +830,13 @@ function fillDemoData() {
   var sh = ss.getSheetByName(SHEET_LINES); var lrows = [];
   DEMO_LINES.forEach(function (x, i) { lrows.push(['demo' + i, Date.now() - (DEMO_LINES.length - i) * 60000, nowHM_(), x[0], 'demo' + i, false, false, 0, i % 2 === 0, x[1]]); });
   sh.getRange(sh.getLastRow() + 1, 1, lrows.length, H_LINES.length).setValues(lrows);
-  writeProgram_(JSON.stringify(normalizeProgram_(demoProgram_())));
+  /* 프로그램은 비어 있는 칸만 예시로 채운다 — 콘솔에서 이미 넣은 인사말·발표자·명단·커뮤니티·트렌드·수치는 그대로 (v3.9.9) */
+  var cur = readProgram_(), demo = normalizeProgram_(demoProgram_());
+  if (!cur.greet.some(function (g) { return String(g.name || g.title || "").trim(); })) cur.greet = demo.greet;
+  if (!cur.speakers.some(function (x) { return String(x.name || "").trim(); })) cur.speakers = demo.speakers;
+  var rosterN = 0; for (var rt = 1; rt <= TABLE_COUNT; rt++) { var ro = cur.roster[rt] || {}; rosterN += (ro[1] || []).length + (ro[2] || []).length; } if (!rosterN) cur.roster = demo.roster;
+  if (!cur.communities.length) cur.communities = demo.communities;
+  writeProgram_(JSON.stringify(cur));
   bumpRev_();
   SpreadsheetApp.getActive().toast('예시 데이터(기록 18건·한줄 24건·프로그램·명단)를 채웠습니다. 행사 전 「전체 비우기」로 지우세요.', '발표보드', 6);
 }
