@@ -82,6 +82,29 @@ var API = (function () {
   }
   return { call: call, isLocal: !gs };
 })();
+/* ---- 같은 브라우저 빠른 길 (v3.10): 콘솔이 상태를 바꾸면 서버 응답을 기다리지 않고 같은 브라우저(같은 프로필)의 스크린 창·콘솔 미리보기에 바로 알린다. 서버 스냅샷이 곧 뒤따라와 기준이 된다. 다른 노트북의 스크린은 서버 긴 폴링으로 받는다 ---- */
+var BC = null; try { BC = new BroadcastChannel('gwb-live'); } catch (e0) { BC = null; }
+/* 콘솔이 보낸 변경(patch)이 서버에서 어떻게 될지 미리 계산 — Code.gs adminSetState 와 같은 규칙 (검사에 걸릴 값은 그냥 무시) */
+function predictState(s, patch) {
+  var st = JSON.parse(JSON.stringify(s || {})); patch = patch || {}; var now = nowServer();
+  if (patch.phase !== undefined && PHASES.indexOf(patch.phase) >= 0) {
+    var changed = st.phase !== patch.phase; st.phase = patch.phase; if (changed) { st.slide = 0; st.hold = false; }
+    if (patch.phase === 'r1' || patch.phase === 'r2') { var rn = patch.phase === 'r1' ? 1 : 2; if (changed || patch.restartRound || st.round !== rn) { st.round = rn; st.roundStart = now; } }
+    if (patch.phase === 'collect') st.closed = true;
+    if (patch.phase === 'reg' || patch.phase === 'part1' || patch.phase === 'p2') { st.round = 0; st.roundStart = 0; }
+  }
+  if (patch.restartRound && (st.phase === 'r1' || st.phase === 'r2')) st.roundStart = now;
+  if (patch.slide !== undefined) { var sl = Number(patch.slide); if (sl >= 0 && sl <= 99 && sl === Math.floor(sl)) { if (sl !== Number(st.slide)) st.hold = false; st.slide = sl; } }
+  if (patch.toggleSame !== undefined) { var k2 = String(patch.toggleSame).slice(0, 20); if (!st.same || typeof st.same !== 'object') st.same = {}; st.same[k2] = !st.same[k2]; }
+  if (patch.closed !== undefined) st.closed = !!patch.closed;
+  if (patch.forceWall !== undefined) st.forceWall = !!patch.forceWall;
+  if (patch.video !== undefined) { var vc = (patch.video && typeof patch.video === 'object') ? String(patch.video.cmd || '') : String(patch.video || ''); if (['play', 'pause', 'restart'].indexOf(vc) >= 0) st.videoCmd = { cmd: vc, at: now }; }
+  if (patch.expected !== undefined) { var ex = Number(patch.expected); if (ex >= 0 && ex <= 999) st.expected = ex; }
+  if (patch.hold !== undefined) st.hold = !!patch.hold;
+  if (patch.op !== undefined) st.op = String(patch.op).slice(0, 24);
+  st.updatedAt = now;
+  return st;
+}
 
 /* ---- 공유 상태 폴링 ---- */
 var S = { rev: 0, state: {}, lines: [], records: {}, program: null, analysis: null };
@@ -90,10 +113,10 @@ function startPolling(ms, onSnap, waitMs) {   // waitMs: 서버가 개정 번호
   function tick() {
     API.call('getSnapshot', waitMs ? [S.rev, waitMs] : [S.rev], function (snap) {
       pollFail = 0;
-      if (snap && !snap.same) { S = snap; serverOffset = (snap.now || Date.now()) - Date.now(); try { onSnap(snap); } catch (e) { console.error(e); } }
+      if (snap && !snap.same) { serverOffset = (snap.now || Date.now()) - Date.now(); if (typeof reconcileSnap === 'function') { try { snap = reconcileSnap(snap) || snap; } catch (e0) {} } S = snap; try { onSnap(snap); } catch (e) { console.error(e); } }   // reconcileSnap: 페이지가 정의하면 낙관적 상태와 맞춘다 (v3.10)
       else if (snap && snap.now) { serverOffset = snap.now - Date.now(); if (snap.editing !== undefined && snap.editing !== S.editing) { S.editing = snap.editing; try { onSnap(S); } catch (e2) { console.error(e2); } } }   // 「수정 중」 인원만 바뀐 경우
       pollTimer = setTimeout(tick, ms);
-    }, function (e) { pollFail++; console.warn('poll', e); pollTimer = setTimeout(tick, Math.min(15000, Math.max(1000, ms) * (1 + pollFail))); });
+    }, function (e) { pollFail++; console.warn('poll', e); pollTimer = setTimeout(tick, Math.min(waitMs ? 5000 : 15000, Math.max(1000, ms) * (1 + pollFail))); });   // 긴 폴링(스크린)은 한 번 실패해도 5초 안에 다시 (v3.10)
   }
   tick();
 }
@@ -352,19 +375,21 @@ var MOCK = (function () {
       var d = load(), s = d.state;
       if (patch.phase !== undefined) {
         if (PHASES.indexOf(patch.phase) < 0) return fail('단계 값 오류');
-        var changed = s.phase !== patch.phase; s.phase = patch.phase; if (changed) s.slide = 0;
+        var changed = s.phase !== patch.phase; s.phase = patch.phase; if (changed) { s.slide = 0; s.hold = false; }
         if (patch.phase === 'r1' || patch.phase === 'r2') { var rn = patch.phase === 'r1' ? 1 : 2; if (changed || patch.restartRound || s.round !== rn) { s.round = rn; s.roundStart = Date.now(); } }
         if (patch.phase === 'collect') s.closed = true;
         if (patch.phase === 'reg' || patch.phase === 'part1' || patch.phase === 'p2') { s.round = 0; s.roundStart = 0; }
       }
       if (patch.restartRound && (s.phase === 'r1' || s.phase === 'r2')) s.roundStart = Date.now();
-      if (patch.slide !== undefined) { var sl = Number(patch.slide); if (!isInt(sl, 0, 99)) return fail('장표 번호 오류'); s.slide = sl; }
+      if (patch.slide !== undefined) { var sl = Number(patch.slide); if (!isInt(sl, 0, 99)) return fail('장표 번호 오류'); if (sl !== Number(s.slide)) s.hold = false; s.slide = sl; }
       if (patch.same !== undefined) { var sm = {}; if (isObj(patch.same)) Object.keys(patch.same).slice(0, 40).forEach(function (k) { sm[String(k).slice(0, 20)] = !!patch.same[k]; }); s.same = sm; }
       if (patch.toggleSame !== undefined) { var k2 = String(patch.toggleSame).slice(0, 20); if (!isObj(s.same)) s.same = {}; s.same[k2] = !s.same[k2]; }
       if (patch.closed !== undefined) s.closed = !!patch.closed;
       if (patch.forceWall !== undefined) s.forceWall = !!patch.forceWall;
       if (patch.video !== undefined) { var vc = isObj(patch.video) ? String(patch.video.cmd || '') : String(patch.video || ''); if (['play', 'pause', 'restart'].indexOf(vc) < 0) return fail('영상 명령 오류 (play·pause·restart)'); s.videoCmd = { cmd: vc, at: Date.now() }; }
       if (patch.expected !== undefined) { var ex = Number(patch.expected); if (!isInt(ex, 0, 999)) return fail('참석자 수는 0~999 사이'); s.expected = ex; }
+      if (patch.hold !== undefined) s.hold = !!patch.hold;
+      if (patch.op !== undefined) s.op = String(patch.op).slice(0, 24);
       s.updatedAt = Date.now(); bump(d); return { ok: true, state: s, rev: d.rev };
     },
     adminSetProgram: function (pin, prog) { if (!isObj(prog)) return fail('프로그램 형식 오류'); var d = load(); d.program = mergeProgram(prog); var js = JSON.stringify(d.program); if (js.length > LIMIT.program) return fail('프로그램 설정이 너무 큽니다 (' + js.length + '자)'); bump(d); return { ok: true, program: d.program, rev: d.rev }; },

@@ -237,31 +237,31 @@ html,body{margin:0;height:100%;overflow:hidden;background:var(--gg-d);color:var(
 .track div.new{background:rgba(255,180,63,.22);border-left-color:var(--orange-b)}
 .wpage{display:flex;justify-content:flex-end;font-size:clamp(16px,2.2vh,22px);color:var(--mut-2)}
 /* 오늘의 한줄 요약 슬라이드 — 같은 뜻끼리 묶은 비율(도넛·막대) */
-.sum{display:grid;grid-template-columns:clamp(300px,34%,420px) minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;gap:clamp(12px,2vh,24px) clamp(24px,3vw,48px);align-items:start;flex:1;min-height:0;overflow:hidden}
-.sum-left{display:flex;flex-direction:column;align-items:center;gap:clamp(8px,1.6vh,14px);min-height:0;overflow:hidden}
-.donut{position:relative;width:clamp(180px,min(24vw,30vh),320px);flex:none;aspect-ratio:1;border-radius:50%;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.sum{display:grid;grid-template-columns:clamp(300px,34%,420px) minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;gap:clamp(12px,2vh,24px) clamp(24px,3vw,48px);align-items:stretch;flex:1;min-height:0;overflow:hidden}   /* stretch: 두 칸이 행 높이 안에 갇힘(start 면 넘쳐 마무리 문장과 겹침) · 넘치면 fitBoxes 가 --fit 으로 줄인다 (v3.10) */
+.sum-left{--fit:1;display:flex;flex-direction:column;align-items:center;gap:calc(clamp(8px,1.6vh,14px) * var(--fit));min-height:0;overflow:hidden}
+.donut{position:relative;width:calc(clamp(180px,min(24vw,30vh),320px) * var(--fit,1));flex:none;aspect-ratio:1;border-radius:50%;box-shadow:0 10px 30px rgba(0,0,0,.25)}
 .donut::after{content:"";position:absolute;inset:24%;border-radius:50%;background:var(--gg)}
 .donut .c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1}
-.donut .c b{font-size:clamp(44px,5.4vw,76px);font-weight:700;line-height:1;color:#fff}
-.donut .c span{font-size:clamp(15px,2vh,20px);color:var(--mut);margin-top:4px}
+.donut .c b{font-size:calc(clamp(44px,5.4vw,76px) * var(--fit,1));font-weight:700;line-height:1;color:#fff}
+.donut .c span{font-size:calc(clamp(15px,2vh,20px) * var(--fit,1));color:var(--mut);margin-top:4px}
 .sum-kpi{display:flex;gap:22px;justify-content:center}
-.sum-kpi div{text-align:center}.sum-kpi b{display:block;font-size:clamp(30px,4vh,40px);color:#fff;line-height:1.1}.sum-kpi span{font-size:clamp(16px,2.2vh,22px);color:var(--mut)}
-.kwbars{width:100%;font-size:clamp(16px,2.2vh,22px)}
+.sum-kpi div{text-align:center}.sum-kpi b{display:block;font-size:calc(clamp(30px,4vh,40px) * var(--fit,1));color:#fff;line-height:1.1}.sum-kpi span{font-size:calc(clamp(16px,2.2vh,22px) * var(--fit,1));color:var(--mut)}
+.kwbars{width:100%;font-size:calc(clamp(16px,2.2vh,22px) * var(--fit,1))}
 .kwbars div{display:grid;grid-template-columns:96px 1fr 30px;gap:8px;align-items:center;margin-bottom:5px;color:var(--mut)}
 .kwbars i{display:block;height:9px;border-radius:5px;background:rgba(255,255,255,.35)}
 .kwbars b{color:#fff;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.groups{display:flex;flex-direction:column;gap:clamp(8px,1.3vh,14px);min-height:0;overflow:hidden}
+.groups{--fit:1;display:flex;flex-direction:column;gap:calc(clamp(8px,1.3vh,14px) * var(--fit));min-height:0;overflow:hidden}
 /* 낮은 화면(768px)에서는 묶음의 대표 글 줄을 접어 한 장에 담는다 */
-@media (max-height:820px){.grp .ex{display:none}.grp{padding:clamp(6px,1vh,10px) 16px}.kwbars div{margin-bottom:3px}}
-.grp{background:rgba(255,255,255,.07);border-radius:10px;padding:clamp(8px,1.2vh,14px) 18px;display:grid;grid-template-columns:1fr auto;gap:4px 16px;align-items:center}
-.grp .nm{display:flex;align-items:center;gap:10px;font-size:clamp(20px,2.2vw,28px);font-weight:700;color:#fff}
+.grp{background:rgba(255,255,255,.07);border-radius:10px;padding:calc(clamp(8px,1.2vh,14px) * var(--fit,1)) 18px;display:grid;grid-template-columns:1fr auto;gap:4px 16px;align-items:center}
+.grp .nm{display:flex;align-items:center;gap:10px;font-size:calc(clamp(20px,2.2vw,28px) * var(--fit,1));font-weight:700;color:#fff}
 .grp .nm i{width:14px;height:14px;border-radius:4px;flex:none}
-.grp .pct{font-size:clamp(28px,3.2vw,44px);font-weight:700;line-height:1;text-align:right}
-.grp .pct small{font-size:clamp(14px,2vh,17px);color:var(--mut);margin-left:6px;font-weight:400}
+.grp .pct{font-size:calc(clamp(28px,3.2vw,44px) * var(--fit,1));font-weight:700;line-height:1;text-align:right}
+.grp .pct small{font-size:calc(clamp(14px,2vh,17px) * var(--fit,1));color:var(--mut);margin-left:6px;font-weight:400}
 .grp .bar{grid-column:1/-1;height:10px;border-radius:5px;background:rgba(255,255,255,.12);overflow:hidden}
 .grp .bar i{display:block;height:100%;border-radius:5px;width:0;transition:width .9s cubic-bezier(.2,.8,.2,1)}
-.grp .ex{grid-column:1/-1;font-size:clamp(18px,1.9vw,25px);color:var(--mut);line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.grp .ex{grid-column:1/-1;font-size:calc(clamp(18px,1.9vw,25px) * var(--fit,1));color:var(--mut);line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .grp .ex b{color:var(--txt);font-weight:500}
+@media (max-height:820px){.grp .ex{display:none}.grp{padding:calc(clamp(6px,1vh,10px) * var(--fit,1)) 16px}.kwbars div{margin-bottom:3px}}   /* .grp 규칙 뒤에 두어야 패딩 규칙이 산다 (v3.10) */
 .sum-say{grid-column:1/-1;background:rgba(255,255,255,.08);border-left:6px solid var(--orange-b);border-radius:8px;padding:12px 20px;font-size:clamp(26px,min(2.8vw,4vh),36px);line-height:1.4;align-self:end}
 /* 묶음 한 장 */
 .og-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:10px}
@@ -409,7 +409,7 @@ function fitNames() {
 }
 /* 글이 칸을 넘치면 글자를 단계적으로 줄인다(최소 0.45배): 주제 질문(.tpc .q)·묶음 대표 글(.og-list)·진행 현황 칸(.sc). 이름 격자(fitNames)와 같은 방식 */
 function fitBoxes() {
-  Array.prototype.forEach.call(document.querySelectorAll('.tpc, .og-list, .sc, .tcard, .tbl-fit'), function (el) {
+  Array.prototype.forEach.call(document.querySelectorAll('.tpc, .og-list, .sc, .tcard, .tbl-fit, .sum-left, .groups'), function (el) {
     var f = 1, guard = 0; el.style.setProperty('--fit', '1');
     while (guard++ < 14 && el.scrollHeight - el.clientHeight > 1 && f > 0.45) { f = Math.round((f - 0.05) * 100) / 100; el.style.setProperty('--fit', String(f)); }
   });
@@ -514,7 +514,9 @@ function trendSlide(T, pi, src, compact) {
   return '<div class="trend' + (compact ? ' compact' : '') + '"><div class="tk"><b>' + esc(src || '트렌드 코리아 2027') + '</b></div><div class="tgrid' + (page.length === 1 ? ' one' : '') + '">' + page.map(function (it, j) { return trendCardHTML(it, pi * 2 + j + 1); }).join('') + '</div></div>';
 }
 /* 휴식·취합 화면 아래쪽: 0 = 수치 표, 1~n = 카드. 시각으로 정하므로 어느 화면이든 같은 칸을 본다 */
-function collectSlot(n, sec) { sec = Math.max(5, Number(sec) || 12); return Math.floor(nowServer() / (sec * 1000)) % (n + 1); }
+var collectPauseAt = 0, collectOffset = 0;   // 콘솔 「화면 멈춤」: 멈춘 동안 흐른 시간은 교대 계산에서 뺀다 → 풀리면 그 장면부터 이어 간다 (v3.10)
+function collectClock() { var t = nowServer(); if (st().hold) { if (!collectPauseAt) collectPauseAt = t; return collectPauseAt - collectOffset; } if (collectPauseAt) { collectOffset += t - collectPauseAt; collectPauseAt = 0; } return t - collectOffset; }
+function collectSlot(n, sec) { sec = Math.max(5, Number(sec) || 12); return Math.floor(collectClock() / (sec * 1000)) % (n + 1); }
 var collectSlotShown = -1;
 function collectLower(P) {
   var f = P.facts || {}, tr = P.trends || {}; var T = tr.collect === false ? [] : trendItems();
@@ -528,7 +530,8 @@ var liveTimer = null, livePanel = '', livePage = 0, liveSig = '', liveSwap = 0, 
 var rot = { i: 0, page: 0, at: 0 };
 /* 작성 완료가 새로 생기면 순환·고정과 상관없이 진행 현황 패널을 바로 보여 주고(HOLD 동안) 그 칸을 강조한다. 끝나면 끼어들기 전 위치에서 이어 간다 */
 var liveDoneSet = null, liveHoldUntil = 0, liveHoldFrom = null, liveNew = {};   // liveDoneSet: 지금까지 본 완료 테이블(null = 아직 안 봄) · liveHoldFrom: 끼어들기 직전 순환 위치 · liveNew[t] = 강조 시작 시각
-function stopLive() { if (liveTimer) clearInterval(liveTimer); liveTimer = null; livePanel = ''; livePage = 0; liveSig = ''; livePending = false; liveSwap++; liveDoneSet = null; liveHoldUntil = 0; liveHoldFrom = null; liveNew = {}; rot = { i: 0, page: 0, at: 0 }; }
+var pausedAt = 0;   // 콘솔 「화면 멈춤」이 시작된 시각. 풀리면 멈춰 있던 시간만큼 순환·끼어들기 기준 시각을 뒤로 밀어 멈췄던 자리에서 이어 간다 (v3.10)
+function stopLive() { if (liveTimer) clearInterval(liveTimer); liveTimer = null; livePanel = ''; livePage = 0; liveSig = ''; livePending = false; liveSwap++; liveDoneSet = null; liveHoldUntil = 0; liveHoldFrom = null; liveNew = {}; pausedAt = 0; rot = { i: 0, page: 0, at: 0 }; }
 function buildLive(r) {
   stopLive();
   var row = phRow(phase());
@@ -571,17 +574,22 @@ function patchLive(r) {
   var lv = program().live || {}; var T = trendItems(); var hasTrend = T.length > 0; var nPages = hasTrend ? trendPages(T).length : 1;
   var list = (lv.panels || []).filter(function (p) { return !!PANEL_NAMES[p] && (p !== 'trend' || hasTrend); }); if (!list.length) list = ['status'];   // 카드가 없으면 트렌드 패널은 건너뛴다
   var sec = Math.max(5, Number(lv.sec) || 20); var now = Date.now();
+  /* 콘솔 「화면 멈춤」(state.hold): 지금 보이는 패널·장면을 그대로 두고 순환·끼어들기를 세운다. 풀리면 멈춰 있던 시간은 없던 것으로 (v3.10) */
+  var paused = !!st().hold;
+  if (paused) { if (!pausedAt) pausedAt = now; }
+  else if (pausedAt) { var p0 = pausedAt, pd = now - p0; pausedAt = 0; if (rot.at) rot.at += pd; if (liveHoldUntil > 0) liveHoldUntil += pd; for (var kp in liveNew) if (liveNew[kp] < p0) liveNew[kp] += pd; }   // 멈춤 중에 생긴 강조는 이미 보였으니 밀지 않는다
   /* 작성 완료가 새로 생겼나: 처음 그릴 때는 기준만 잡고, 그 뒤 늘어나면 진행 현황을 바로 보여 준다 (끼어들기 전 위치를 기억) */
   var dn = TABLES.filter(function (t) { return recStatus(t, r) === 'done'; });
   if (liveDoneSet === null) liveDoneSet = {};
-  else { var fresh = dn.filter(function (t) { return !liveDoneSet[t]; }); if (fresh.length) { if (liveHoldUntil <= now && !liveHoldFrom) liveHoldFrom = { i: rot.i, page: rot.page, shown: now - rot.at }; liveHoldUntil = now + Math.max(8, sec) * 1000; fresh.forEach(function (t) { liveNew[t] = now; }); } }
+  else { var fresh = dn.filter(function (t) { return !liveDoneSet[t]; }); if (fresh.length) { if (!paused) { if (liveHoldUntil <= now && !liveHoldFrom) liveHoldFrom = { i: rot.i, page: rot.page, shown: now - rot.at }; liveHoldUntil = now + Math.max(8, sec) * 1000; } fresh.forEach(function (t) { liveNew[t] = now; }); } }   // 멈춤 중에는 끼어들지 않고 칸 강조만
   var seen = {}; dn.forEach(function (t) { seen[t] = true; }); liveDoneSet = seen;
   for (var k in liveNew) if (now - liveNew[k] > 6000) delete liveNew[k];   // 강조는 6초
   var hold = liveHoldUntil > now;
   var pinned = !!(lv.pin && PANEL_NAMES[lv.pin]) && (lv.pin !== 'trend' || hasTrend);
   function advance() { var cur = list[rot.i % list.length]; if (cur === 'trend' && rot.page + 1 < nPages) rot.page++; else { rot.i = (rot.i + 1) % list.length; rot.page = 0; } rot.at = now; }   // 트렌드는 장면을 다 보여 준 뒤 다음 패널
   var name, page = 0;
-  if (hold) name = 'status';
+  if (paused) { name = livePanel || (hold ? 'status' : (pinned ? lv.pin : list[rot.i % list.length])); page = livePanel ? livePage : 0; if (!rot.at) rot.at = now; }   // 화면 멈춤: 지금 보이는 패널·장면 그대로 (내용 갱신은 아래에서 계속). 멈춘 채로 새로 뜬 화면이면 고정 패널 → 첫 패널
+  else if (hold) name = 'status';
   else {
     if (liveHoldFrom) {   // 끼어들기가 끝남: 반 이상 보여 준 항목이면 다음 항목부터, 아니면 그 항목을 다시 (예: 트렌드 1~2 중 완료 → 현황 → 3~4)
       var hf = liveHoldFrom; liveHoldFrom = null; rot.i = hf.i; rot.page = hf.page; rot.at = now;
@@ -606,7 +614,7 @@ function render() {
   var key = ph + '/' + idx + '/' + cur.type;
   var rn = Number(cur.r) || Number(s.round) || (ph === 'r2' ? 2 : 1);
   if (cur.type === 'live') { if (viewKey !== key) { buildLive(rn); viewKey = key; } patchLive(rn); return; }
-  stopLive();
+  stopLive(); if (cur.type !== 'collect') { collectPauseAt = 0; collectOffset = 0; }   // 휴식 화면을 떠나면 교대 시계를 서버 시각에 다시 맞춘다(다른 스크린과 같은 장면)
   var P = program(); var row = phRow(ph); var tm = esc(row[2]);
   if (cur.type === 'video') { var vk = key + '|' + JSON.stringify(P.video || {}) + '|' + (LOCAL_VIDEO ? LOCAL_VIDEO.name + LOCAL_VIDEO.size : ''); if (viewKey === vk) return; viewKey = vk; lastVideoCmdAt = (s.videoCmd || {}).at || 0; } else viewKey = key;   // 영상 장이 새로 뜰 때, 그 전에 보낸 재생 명령은 무시
   var head = '', body = '', foot = '', cls = '';
@@ -657,7 +665,7 @@ function render() {
   } else if (cur.type === 'collect') {
     var f = P.facts || {};
     head = chip('휴식 · 결과 취합') + ev(tm);
-    body = '<div class="col-top"><div><div class="sec-t">토론 결과 종합 중</div><div class="sec-s" style="margin-bottom:0">' + (s.analyzed ? '정리 완료 · 15:20 결과공유를 시작합니다' : '기록 입력 마감 → 전체 기록 정리 → 테이블별 정리 · 주제 종합 · 건의사항') + '</div></div>' +
+    body = '<div class="col-top"><div><div class="sec-t">토론 결과 종합 중</div></div>' +
       '<div class="s-timeline"><div class="' + (s.closed ? 'on' : '') + '"><b>1</b>입력 마감</div><div class="' + (s.analyzed ? 'on' : '') + '"><b>2</b>분석 실행</div><div><b>3</b>발표 화면 준비</div></div></div>' +
       '<div class="col-lower" id="colLower">' + collectLower(P) + '</div>' + tickerHTML();   // 수치 표와 트렌드 카드를 번갈아 (v3.4). 교대는 이 칸만 다시 그려 롤링 띠가 끊기지 않게
     foot = '<span>참가자 과업 없음 · 잠시 쉬어 가세요</span><span>오늘의 한줄 ' + visibleLines().length + '건 · 기록 저장 ' + savedCount(2) + '/9 (2라운드)</span>';
@@ -709,7 +717,25 @@ setInterval(function () {   // 1초마다: 진행 화면은 타이머, 휴식·�
   if ((ph === 'r1' || ph === 'r2') && cs.type === 'live') { render(); return; }
   if (ph === 'collect' && cs.type === 'collect') { var tr = program().trends || {}; var T = tr.collect === false ? [] : trendItems(); if (T.length && collectSlot(trendPages(T).length, tr.sec) !== collectSlotShown) { var low = document.getElementById('colLower'); if (low) { low.innerHTML = collectLower(program()); animateBars(); fitBoxes(); } else { viewKey = ''; render(); } } }
 }, 1000);
-startPolling(API.isLocal ? 1000 : 250, function () { render(); applyVideoCmd(); }, API.isLocal ? 0 : 6000);   // 실제 서버: 긴 폴링(바뀔 때까지 최대 6초 기다렸다 답함, 답 오면 0.25초 뒤 다시) — 콘솔 「다음」이 1초 안에 닿는다. 스냅샷마다 그리고, 영상 명령이 새로 왔으면 적용 (v3.9)
+/* 같은 브라우저 빠른 길 (v3.10): 콘솔이 바꾼 상태를 서버보다 먼저 받아 바로 그린다. 서버 스냅샷이 오면 그것이 기준 — 단, 우리 변경보다 오래된 스냅샷(그 사이 다른 변경으로 온 것)은 상태 칸만 잠시 무시한다. 6초 안에 서버 상태로 반드시 맞춘다 */
+var optimistic = null, optTimer = null;
+function reconcileSnap(snap) {
+  if (optimistic && snap && snap.state) {
+    var su = Number(snap.state.updatedAt) || 0, so = snap.state.op, oo = optimistic.state.op;
+    var older = (so && oo) ? (so !== oo && su < optimistic.at + 3000) : (su < optimistic.at - 3000);   // 꼬리표(op)가 다르고 더 새것도 아니면 우리 변경 전의 상태 → 우리 것이 서버에 닿기 전
+    if (older) snap.state = optimistic.state;
+    else { var a = optimistic.state.videoCmd, b = snap.state.videoCmd; if (a && b && a.cmd === b.cmd && Math.abs(Number(b.at) - Number(a.at)) < 8000 && lastVideoCmdAt === a.at) lastVideoCmdAt = b.at; optimistic = null; clearTimeout(optTimer); optTimer = null; }   // 미리 적용한 영상 명령을 서버 시각으로 한 번 더 적용하지 않는다(처음부터 두 번 방지) · 맞춰졌으니 안전 타이머는 끈다
+  }
+  return snap;
+}
+if (BC) BC.onmessage = function (ev) {
+  var m = ev && ev.data; if (!m || !S.rev) return;   // 첫 스냅샷 전에는 그리지 않는다
+  if (m.type === 'revert') { if (optimistic) { optimistic = null; clearTimeout(optTimer); optTimer = null; forceRefresh(); } return; }   // 콘솔의 변경이 서버에서 실패 → 바로 서버 상태로
+  if (m.type !== 'state' || !m.state) return;
+  optimistic = { state: m.state, at: Number(m.at) || nowServer() }; S.state = m.state; render(); applyVideoCmd();
+  clearTimeout(optTimer); optTimer = setTimeout(function () { optimistic = null; forceRefresh(); }, 6000);   // 안전장치: 서버 상태로 다시 맞춘다
+};
+startPolling(API.isLocal ? 1000 : 60, function () { render(); applyVideoCmd(); }, API.isLocal ? 0 : 6000);   // 실제 서버: 긴 폴링(바뀔 때까지 최대 6초 기다렸다 답함, 답 오면 바로 다시) — 콘솔 「다음」이 1초 안에 닿는다. 스냅샷마다 그리고, 영상 명령이 새로 왔으면 적용 (v3.9 · v3.10)
 </script>
 </body>
 </html>

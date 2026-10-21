@@ -189,6 +189,7 @@ function setPin() {
   var v = String(r.getResponseText() || '').trim();
   if (!v) return;
   PropertiesService.getScriptProperties().setProperty('ADMIN_PIN', v);
+  try { CacheService.getScriptCache().remove('PIN'); } catch (e) {}
   ui.alert('PIN 을 「' + v + '」 로 바꿨습니다.');
 }
 function setApiKey() {
@@ -282,32 +283,37 @@ function confRow_(cf, key) {
 /* ============================================================
  *  진행 상태 (스크립트 속성) · 개정 번호 · 캐시
  * ========================================================== */
-function defaultState_() { return { phase: 'reg', round: 0, roundStart: 0, slide: 0, same: {}, closed: false, analyzed: false, analyzedAt: 0, forceWall: false, expected: 0, updatedAt: 0 }; }
+function defaultState_() { return { phase: 'reg', round: 0, roundStart: 0, slide: 0, same: {}, closed: false, analyzed: false, analyzedAt: 0, forceWall: false, hold: false, expected: 0, updatedAt: 0 }; }   // hold: 스크린 화면 멈춤 (v3.10)
 function getState_() {
   var s = PropertiesService.getScriptProperties().getProperty('STATE');
   var d = defaultState_();
   if (!s) return d;
   try { var o = JSON.parse(s); for (var k in o) d[k] = o[k]; return d; } catch (e) { return d; }
 }
-function saveState_(st) { st.updatedAt = Date.now(); PropertiesService.getScriptProperties().setProperty('STATE', JSON.stringify(st)); bumpRev_({ state: st }); }   // 상태만 바뀜 → 스냅샷 캐시의 state 칸만 교체 (v3.9)
+function saveState_(st) { st.updatedAt = Date.now(); PropertiesService.getScriptProperties().setProperty('STATE', JSON.stringify(st)); return bumpRev_({ state: st }); }   // 상태만 바뀜 → 스냅샷 캐시의 state 칸만 교체 (v3.9)
 function getRev_() { return Number(PropertiesService.getScriptProperties().getProperty('REV') || 0); }
 /* 개정 번호의 캐시 거울: 폴링의 빠른 길(same 판정)·긴 폴링이 PropertiesService(하루 읽기 한도 5만)를 타지 않게. 캐시가 비면 속성에서 읽어 다시 채운다 (v3.9) */
 function getRevFast_() { var c = CacheService.getScriptCache(); var v = null; try { v = c.get('REV'); } catch (e) {} if (v != null && v !== '') return Number(v) || 0; var r = getRev_(); try { c.put('REV', String(r), 21600); } catch (e2) {} return r; }
 /* 개정 번호 +1. patch 가 있으면(예: {state}·{lines}·{records}·{screen}) 캐시된 스냅샷의 그 칸만 바꿔 다음 폴링이 시트를 다시 읽지 않게 하고, 없으면 스냅샷 캐시를 지운다 (v3.9) */
 function bumpRev_(patch) {
-  var lock = LockService.getScriptLock();
-  try { lock.waitLock(3000); } catch (e) {}
+  var lock = LockService.getScriptLock(); var locked = false;
+  try { lock.waitLock(3000); locked = true; } catch (e) {}
   var p = PropertiesService.getScriptProperties();
   var r = Number(p.getProperty('REV') || 0) + 1;
   p.setProperty('REV', String(r));
-  try { lock.releaseLock(); } catch (e2) {}
   var cache = CacheService.getScriptCache();
+  /* 순서가 중요 (v3.10): 스냅샷(SNAP)을 먼저 새 번호로 고친 뒤 맨 끝에 REV 를 올린다 — 기다리던 긴 폴링이 새 REV 를 보는 순간 SNAP 은 이미 새것이라 시트를 다시 읽는 느린 길(1~3초)로 빠지지 않는다. 잠금은 캐시 갱신까지 덮어 두 호출이 서로의 칸을 덮어쓰지 않게 */
+  var patched = false;
+  if (patch && locked) { try { var c = cache.get('SNAP'); if (c) { var o = JSON.parse(c); for (var k in patch) o[k] = patch[k]; o.rev = r; var js = JSON.stringify(o); if (Utilities.newBlob(js).getBytes().length < 95000) { cache.put('SNAP', js, 21600); patched = true; } } } catch (e5) {} }
+  if (!patched) { try { cache.remove('SNAP'); } catch (e3) {} }
   try { cache.put('REV', String(r), 21600); } catch (e4) {}
-  if (patch) { try { var c = cache.get('SNAP'); if (c) { var o = JSON.parse(c); for (var k in patch) o[k] = patch[k]; o.rev = r; var js = JSON.stringify(o); if (Utilities.newBlob(js).getBytes().length < 95000) { cache.put('SNAP', js, 21600); return r; } } } catch (e5) {} }
-  try { cache.remove('SNAP'); } catch (e3) {}
+  try { lock.releaseLock(); } catch (e2) {}
   return r;
 }
-function getPin_() { return PropertiesService.getScriptProperties().getProperty('ADMIN_PIN') || DEFAULT_PIN; }
+function getPin_() {   // 캐시 거울(5분): 콘솔 호출마다 속성을 읽지 않는다. 「운영진 PIN 설정」이 바꾸면 바로 지운다 (v3.10)
+  var c = CacheService.getScriptCache(); var v = null; try { v = c.get('PIN'); } catch (e) {} if (v) return v;
+  v = PropertiesService.getScriptProperties().getProperty('ADMIN_PIN') || DEFAULT_PIN; try { c.put('PIN', v, 300); } catch (e2) {} return v;
+}
 function checkPin_(pin) {
   var cache = CacheService.getScriptCache(); var fails = 0; try { fails = Number(cache.get('PINFAIL') || 0); } catch (e) {}
   if (fails >= 8) throw new Error('PIN 입력이 너무 많이 틀렸습니다. 1분 뒤 다시 시도해 주세요');
@@ -390,15 +396,17 @@ function readAnalysis_() {
 function getSnapshot(sinceRev, waitMs) {
   sinceRev = Number(sinceRev) || 0; waitMs = Math.min(8000, Math.max(0, Number(waitMs) || 0));
   var rev = getRevFast_();
-  if (sinceRev && sinceRev === rev && waitMs) {   // 긴 폴링(스크린): 개정 번호가 바뀔 때까지 최대 waitMs 동안 0.25초마다 보고 바로 답한다 — 콘솔 「다음」이 스크린에 더 빨리 닿게 (v3.9)
+  if (sinceRev && sinceRev === rev && waitMs) {   // 긴 폴링(스크린): 개정 번호가 바뀔 때까지 최대 waitMs 동안 0.12초마다 캐시만 보고 바로 답한다 — 콘솔 「다음」이 스크린에 더 빨리 닿게 (v3.9 → v3.10 간격 단축)
     var until = Date.now() + waitMs;
-    while (Date.now() < until) { Utilities.sleep(250); rev = getRevFast_(); if (rev !== sinceRev) break; }
+    while (Date.now() < until) { Utilities.sleep(120); rev = getRevFast_(); if (rev !== sinceRev) break; }
   }
   var editing = Object.keys(readEditing_()).length;
   if (sinceRev && sinceRev === rev) return { same: true, rev: rev, now: Date.now(), editing: editing };
   var cache = CacheService.getScriptCache();
   var c = null; try { c = cache.get('SNAP'); } catch (e) {}
-  if (c) { try { var o = JSON.parse(c); if (o.rev === rev) { o.now = Date.now(); o.editing = editing; return o; } } catch (e2) {} }
+  if (c) { try { var o = JSON.parse(c);
+    if (o.rev > rev) { Utilities.sleep(60); var rev2 = getRevFast_(); if (o.rev === rev2) rev = rev2; }   // SNAP 이 먼저, REV 가 나중에 써지는 짧은 순간이면 REV 를 한 번 더 읽어 맞춘다 (v3.10)
+    if (o.rev === rev) { o.now = Date.now(); o.editing = editing; return o; } } catch (e2) {} }
   var snap = { rev: rev, state: getState_(), lines: readLines_().map(exportLine_), records: readRecords_(), program: readProgram_(), analysis: readAnalysis_(), screen: readScreen_() };
   var js = JSON.stringify(snap);
   var bytes = 0; try { bytes = Utilities.newBlob(js).getBytes().length; } catch (e4) { bytes = js.length * 3; }
@@ -416,13 +424,14 @@ function readEditing_() {   // 캐시 거울 먼저, 비면 속성에서 읽어 
   var now = Date.now(), out = {}; for (var k in o) if (now - Number(o[k]) < EDIT_TTL_MS) out[k] = o[k];
   return out;
 }
-function setEditing(dev, on) {
+function setEditing(dev, on) { return setEditing_(dev, on); }   // 참가자 페이지가 부르는 공개 함수 — 스냅샷 칸(patch)은 밖에서 넣을 수 없다
+function setEditing_(dev, on, patch) {   // patch: 같이 바꿀 스냅샷 칸 — 서버 안에서만(updateLine 이 lines 를 넘긴다) (v3.10)
   dev = str_(dev, LIMIT.dev).trim(); if (!dev) return { ok: false, error: '기기 정보가 없습니다' };
   var lock = LockService.getScriptLock(); try { lock.waitLock(5000); } catch (e) { return { ok: false, error: '잠시 후 다시 시도해 주세요' }; }
   var o;
   try { o = readEditing_(); if (on) o[dev] = Date.now(); else delete o[dev]; var ej = JSON.stringify(o); PropertiesService.getScriptProperties().setProperty('EDITING', ej); try { CacheService.getScriptCache().put('EDITING', ej, 21600); } catch (e3) {} }
   finally { try { lock.releaseLock(); } catch (e2) {} }
-  bumpRev_({});   // 스냅샷 내용은 그대로(수정 중 인원은 답할 때 붙인다)
+  bumpRev_(patch || {});   // patch 없으면 스냅샷 내용은 그대로(수정 중 인원은 답할 때 붙인다)
   return { ok: true, editing: Object.keys(o).length };
 }
 
@@ -488,7 +497,7 @@ function updateLine(id, dev, text) {
     sh.getRange(found.row, 8).setValue((found.edited || 0) + 1);
     for (var j = 0; j < lines.length; j++) if (lines[j].dev === found.dev && lines[j].done) sh.getRange(lines[j].row, 9).setValue(false);
   } finally { try { lock.releaseLock(); } catch (e2) {} }
-  setEditing(dev, false);   // 저장했으니 「수정 중」에서 빠짐 (여기서 rev 도 올라감)
+  setEditing_(dev, false, { lines: readLines_().map(exportLine_) });   // 저장했으니 「수정 중」에서 빠짐 + 고친 글을 스냅샷 캐시에 (전엔 빈 패치라 고친 글이 다음 변경 때까지 스크린에 안 닿았음, v3.10 고침)
   return { ok: true, at: nowHM_() };
 }
 /* 참가자가 「작성 완료」를 누르면 그 사람(기기)의 글 전부에 완료 표시 */
@@ -544,13 +553,13 @@ function adminSetState(pin, patch) {
     if (PHASES.indexOf(patch.phase) < 0) return { ok: false, error: '단계 값 오류' };
     var changed = st.phase !== patch.phase;
     st.phase = patch.phase;
-    if (changed) st.slide = 0;   // 장표 번호는 단계 안에서 0부터
+    if (changed) { st.slide = 0; st.hold = false; }   // 장표 번호는 단계 안에서 0부터 · 화면 멈춤도 풀린다
     if (patch.phase === 'r1' || patch.phase === 'r2') { var rn = patch.phase === 'r1' ? 1 : 2; if (changed || patch.restartRound || st.round !== rn) { st.round = rn; st.roundStart = Date.now(); } }
     if (patch.phase === 'collect') st.closed = true;
     if (patch.phase === 'reg' || patch.phase === 'part1' || patch.phase === 'p2') { st.round = 0; st.roundStart = 0; }
   }
   if (patch.restartRound && (st.phase === 'r1' || st.phase === 'r2')) st.roundStart = Date.now();
-  if (patch.slide !== undefined) { var sl = Number(patch.slide); if (!isInt_(sl, 0, 99)) return { ok: false, error: '장표 번호 오류' }; st.slide = sl; }
+  if (patch.slide !== undefined) { var sl = Number(patch.slide); if (!isInt_(sl, 0, 99)) return { ok: false, error: '장표 번호 오류' }; if (sl !== Number(st.slide)) st.hold = false; st.slide = sl; }   // 장표가 바뀌면 화면 멈춤은 풀린다
   if (patch.same !== undefined) {
     var sm = {};
     if (isObj_(patch.same)) Object.keys(patch.same).slice(0, 40).forEach(function (k) { sm[str_(k, 20)] = !!patch.same[k]; });
@@ -561,8 +570,10 @@ function adminSetState(pin, patch) {
   if (patch.forceWall !== undefined) st.forceWall = !!patch.forceWall;
   if (patch.video !== undefined) { var vc = isObj_(patch.video) ? String(patch.video.cmd || '') : String(patch.video || ''); if (['play', 'pause', 'restart'].indexOf(vc) < 0) return { ok: false, error: '영상 명령 오류 (play·pause·restart)' }; st.videoCmd = { cmd: vc, at: Date.now() }; }   // 스크린 오프닝 영상 제어
   if (patch.expected !== undefined) { var ex = Number(patch.expected); if (!isInt_(ex, 0, 999)) return { ok: false, error: '참석자 수는 0~999 사이' }; st.expected = ex; }   // 당일 참석자 수 (오늘의 한줄 목표)
-  saveState_(st);
-  return { ok: true, state: st, rev: getRev_() };
+  if (patch.hold !== undefined) st.hold = !!patch.hold;   // 스크린 화면 멈춤: 라운드 패널 순환·휴식 화면 교대를 지금 보이는 것에서 정지(내용 갱신은 계속). 장표·단계가 바뀌면 자동으로 풀린다 (v3.10)
+  if (patch.op !== undefined) st.op = str_(patch.op, 24);   // 콘솔이 붙인 변경 꼬리표 — 스크린·콘솔이 미리 그린 상태와 서버 상태를 맞출 때 씀 (v3.10)
+  var rev = saveState_(st);   // 속성(REV)을 다시 읽지 않는다
+  return { ok: true, state: st, rev: rev };
 }
 /* 1부 프로그램·명단·화면 문구 저장 (콘솔 「프로그램」「참가자 명단」 탭). 정규화해서 설정 시트 program 행에 JSON 으로 */
 function adminSetProgram(pin, program) {
