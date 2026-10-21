@@ -1,0 +1,21 @@
+# 생성물 · 로컬 전용
+appsscript/local_preview/
+deploy_vercel/.vercel/
+node_modules/
+_backup_*/
+.claude/
+*.log
+
+# 개인 정보 · 자격 증명 · 로컬 설정
+에이피아이.txt
+appsscript/.clasp.json
+조편성/.clasp.json
+*.clasprc.json
+
+# 한글 문서 원본(별도 공유)
+*.hwp
+*.hwpx
+
+# 운영체제
+Thumbs.db
+.DS_Store

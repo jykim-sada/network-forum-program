@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>오늘의 한줄</title>
+<style>
+@font-face{font-family:'GyeonggiTitle';font-weight:500;font-display:swap;src:url('https://cdn.jsdelivr.net/gh/fonts-archive/GyeonggiTitle/GyeonggiTitle-Medium.woff2') format('woff2')}
+@font-face{font-family:'GyeonggiTitle';font-weight:700;font-display:swap;src:url('https://cdn.jsdelivr.net/gh/fonts-archive/GyeonggiTitle/GyeonggiTitle-Bold.woff2') format('woff2')}
+:root{--gg:#0E4194;--gg-l:#1B5AAE;--teal:#00A496;--lime:#ABCD03;--orange:#F39800;--deep:#ED6100;--bg:#F1F4F9;--card:#fff;--line:#DEE4EE;--txt:#161C26;--mut:#5F6979;--mut-2:#8A93A2;--paper:#FFFDF7;--rule:#E3E8F0}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--txt);font-family:"GyeonggiTitle","Malgun Gothic","맑은 고딕",system-ui,sans-serif;font-size:16px;line-height:1.55}
+.wrap{max-width:480px;margin:0 auto;padding:0 18px}
+.ciband{background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:10px 18px;max-width:480px;margin:0 auto}
+.ciband img.gg{height:22px;width:auto;display:block}.ciband img.hc{height:30px;width:auto;display:block}
+.ciband .sp{flex:1}.ciband .ttl{color:var(--gg);font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.tri{height:4px;display:flex}.tri i{flex:1}
+.tri i:nth-child(1){background:var(--teal)}.tri i:nth-child(2){background:var(--lime)}.tri i:nth-child(3){background:var(--orange)}
+header{background:var(--gg);color:#fff;padding:14px 0 15px;margin-bottom:16px}
+header h1{margin:0;font-size:22px;font-weight:700;letter-spacing:-.02em;display:flex;align-items:center;gap:10px}
+header .sub{font-size:13px;opacity:.85;margin-top:2px}
+.anon{font-size:11px;font-weight:500;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:2px 9px}
+.tchip{font-size:12px;font-weight:700;background:#fff;color:var(--gg);border-radius:999px;padding:2px 10px;white-space:nowrap}
+.tchip:empty{display:none}
+.paper{background:var(--paper);border:1px solid var(--line);border-radius:12px;box-shadow:0 6px 18px rgba(14,65,148,.08);padding:20px 18px 14px 18px;position:relative;overflow:hidden}
+.paper::before{content:"";position:absolute;left:14px;top:0;bottom:0;width:3px;background:var(--orange);opacity:.55}
+.paper.editing{border-color:var(--teal);box-shadow:0 6px 18px rgba(0,164,150,.18)}
+.prompt{font-size:15px;color:var(--gg);font-weight:700;margin:0 0 6px 10px}
+.prompt small{font-weight:500;color:var(--teal);margin-left:6px}
+.lines{display:block;width:100%;border:0;outline:0;resize:none;font:inherit;font-size:19px;line-height:34px;padding:0 0 0 10px;min-height:170px;color:var(--txt);background:transparent;background-image:repeating-linear-gradient(transparent 0 33px,var(--rule) 33px 34px);background-attachment:local}
+.lines::placeholder{color:#AEB6C4}
+.pfoot{display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-left:10px;gap:8px}
+.pfoot small{color:var(--mut-2)}
+.send{background:var(--gg);color:#fff;border:0;border-radius:24px;padding:12px 22px;font:inherit;font-weight:700;font-size:16px;cursor:pointer}
+.send.edit{background:var(--teal)}
+.send:disabled{opacity:.35;cursor:default}
+.cancel{background:transparent;border:1px solid var(--line);color:var(--mut);border-radius:24px;padding:10px 14px;font:inherit;font-size:14px;cursor:pointer}
+.mine{margin-top:22px}
+.mine h4{margin:0 0 8px;font-size:14px;color:var(--mut);font-weight:700}
+.note{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--teal);border-radius:10px;padding:12px 14px;margin-bottom:8px}
+.note .t{white-space:pre-wrap}
+.note .m{display:flex;gap:12px;align-items:center;margin-top:6px;font-size:13px;color:var(--mut-2)}
+.note .m .sp{flex:1}
+.note button{background:transparent;border:0;color:var(--gg);font:inherit;font-size:13px;padding:0;cursor:pointer}
+.note button.del{color:var(--mut-2)}
+.donebox{margin-top:14px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.donebox p{margin:0 0 10px;font-size:14px;color:var(--mut)}
+.donebtn{width:100%;background:var(--deep);color:#fff;border:0;border-radius:24px;padding:13px;font:inherit;font-weight:700;font-size:16px;cursor:pointer}
+.donebtn:disabled{opacity:.35;cursor:default}
+.donebox.ok{background:#E0F5F2;border-color:#9ADBD3}
+.donebox.ok b{color:#00786E;font-size:16px}
+.tiny{font-size:12px;color:var(--mut-2);margin:18px 0 40px;line-height:1.6}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:var(--gg);color:#fff;padding:12px 20px;border-radius:999px;opacity:0;transition:.25s;pointer-events:none;font-size:15px;max-width:90vw;text-align:center}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+.toast.err{background:#B23A2E}
+.empty{color:#AEB6C4;font-size:14px;padding:6px 0}
+</style>
+</head>
+<body>
+<script>var CFG = <?!= CFG ?>;</script>
+<?!= include('Common') ?>
+<div id="brand"></div>
+<header><div class="wrap"><h1>오늘의 한줄 <span class="anon">무기명</span><span class="tchip" id="tchip"></span></h1><div class="sub" id="sub"></div></div></header>
+<div class="wrap">
+  <main id="app"></main>
+  <p class="tiny">이름과 소속은 적지 않습니다. 작성하신 글은 비밀이 보장됩니다. 최종 써머리는 토론결과와 함께 공유됩니다.</p>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+var DEV = devId(); var draft = ''; var busy = false; var editingId = null;
+/* 테이블 번호: CFG.table(1~9) 이 있으면 그것, 없으면 주소의 t (테이블 QR 꼬리표). 둘 다 없으면 0 = 미지정 */
+function tableNo() { var n = Number(CFG.table) || 0; if (!(n >= 1 && n <= 9)) { try { var m = /[?&]t=(\d+)/.exec(location.search || ''); n = m ? Number(m[1]) : 0; } catch (e) { n = 0; } } return (n >= 1 && n <= 9) ? n : 0; }
+var TABLE = tableNo();
+var MINE_KEY = 'gwb-mine', DONE_KEY = 'gwb-done';
+function mine() { try { return JSON.parse(localStorage.getItem(MINE_KEY) || '[]'); } catch (e) { return []; } }
+function saveMine(a) { try { localStorage.setItem(MINE_KEY, JSON.stringify(a)); } catch (e) {} }
+function isDone() { try { return localStorage.getItem(DONE_KEY) === '1'; } catch (e) { return false; } }
+function setDone(v) { try { localStorage.setItem(DONE_KEY, v ? '1' : '0'); } catch (e) {} }
+function toast(msg, err) { var t = document.getElementById('toast'); t.textContent = msg; t.className = 'toast on' + (err ? ' err' : ''); setTimeout(function () { t.className = 'toast'; }, 2200); }
+function render() {
+  var app = document.getElementById('app'); var my = mine(); var done = isDone();
+  var editing = editingId ? my.filter(function (o) { return o.id === editingId; })[0] : null;
+  app.innerHTML = '<section class="paper' + (editing ? ' editing' : '') + '"><p class="prompt">' + esc(PROMPT) + (editing ? '<small>· 고치는 중</small>' : '') + '</p>' +
+    '<textarea class="lines" id="txt" rows="5" maxlength="500" placeholder="자유롭게 적어 주세요. 길어도 괜찮아요.">' + esc(draft) + '</textarea>' +
+    '<div class="pfoot"><small></small><span style="flex:1"></span>' + (editing ? '<button class="cancel" id="cancelEdit">취소</button>' : '') +
+    '<button class="send' + (editing ? ' edit' : '') + '" id="send" ' + (draft.trim() && !busy ? '' : 'disabled') + '>' + (busy ? '보내는 중…' : editing ? '수정 완료' : '스크린에 올리기') + '</button></div></section>' +
+    '<section class="mine"><h4>내가 적은 것 <span style="font-weight:400">· 이 기기에서만 보여요</span></h4>' +
+    (my.length ? my.slice().reverse().map(function (o) { return '<div class="note"><div class="t">' + esc(o.text) + '</div><div class="m"><span>' + esc(o.at) + (o.edited ? ' · 고침 ' + o.edited + '회' : '') + '</span><span class="sp"></span><button data-edit="' + o.id + '">' + (editingId === o.id ? '고치는 중…' : '수정') + '</button></div></div>'; }).join('') : '<div class="empty">아직 없어요. 위에 적고 올려 보세요.</div>') + '</section>' +
+    (my.length ? (done ? '<div class="donebox ok"><b>작성 완료했습니다. 고맙습니다.</b><p style="margin:6px 0 0">글을 고치면 완료가 풀리니, 고친 뒤에는 「작성 완료」를 다시 눌러 주세요.</p></div>'
+      : '<div class="donebox"><p>다 적으셨으면 아래를 눌러 주세요. 완료한 분 수가 스크린에 표시됩니다. 완료 뒤에도 고칠 수 있어요.</p><button class="donebtn" id="doneBtn" ' + (busy ? 'disabled' : '') + '>작성 완료</button></div>') : '');
+  var ta = app.querySelector('#txt');
+  ta.oninput = function () { draft = ta.value; app.querySelector('#send').disabled = !draft.trim() || busy; ta.style.height = 'auto'; ta.style.height = Math.max(170, ta.scrollHeight) + 'px'; };
+  app.querySelector('#send').onclick = function () { editing ? saveEdit(editing) : send(); };
+  var c = app.querySelector('#cancelEdit'); if (c) c.onclick = function () { editingId = null; draft = ''; render(); API.call('setEditing', [DEV, false], function () {}); };
+  app.querySelectorAll('[data-edit]').forEach(function (b) { b.onclick = function () { var o = my.filter(function (x) { return x.id === b.dataset.edit; })[0]; if (!o) return; editingId = o.id; draft = o.text; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); API.call('setEditing', [DEV, true], function () {}); }; });   // 「수정 중」 인원에 등록
+  var d = app.querySelector('#doneBtn'); if (d) d.onclick = markDone;
+}
+window.addEventListener('beforeunload', function () { if (editingId) { try { API.call('setEditing', [DEV, false], function () {}); } catch (e) {} } });
+function send() {
+  var t = draft.trim(); if (!t || busy) return;
+  busy = true; render();
+  API.call('addLine', [t, DEV, TABLE], function (r) {
+    busy = false;
+    if (r && r.ok) { var my = mine(); my.push({ id: r.id, text: t, at: r.at, edited: 0 }); saveMine(my); if (isDone()) setDone(false); draft = ''; render(); toast('스크린에 올라갔어요'); }
+    else { render(); toast((r && r.error) || '올리지 못했습니다', true); }
+  }, function () { busy = false; render(); toast('연결이 불안정합니다. 잠시 후 다시 눌러 주세요', true); });
+}
+function saveEdit(o) {
+  var t = draft.trim(); if (!t || busy) return;
+  busy = true; render();
+  API.call('updateLine', [o.id, DEV, t], function (r) {
+    busy = false;
+    if (r && r.ok) { var my = mine().map(function (x) { if (x.id === o.id) { x.text = t; x.edited = (x.edited || 0) + 1; } return x; }); saveMine(my); setDone(false); editingId = null; draft = ''; render(); toast('고쳤습니다. 다 고치셨으면 「작성 완료」를 눌러 주세요'); }
+    else { render(); toast((r && r.error) || '고치지 못했습니다', true); }
+  }, function () { busy = false; render(); toast('연결이 불안정합니다. 잠시 후 다시 눌러 주세요', true); });
+}
+function markDone() {
+  if (busy) return; busy = true; render();
+  API.call('markDone', [DEV], function (r) { busy = false; if (r && r.ok) { setDone(true); render(); toast('작성 완료로 표시했습니다'); } else { render(); toast((r && r.error) || '완료 처리를 못 했습니다', true); } },
+    function () { busy = false; render(); toast('연결이 불안정합니다. 잠시 후 다시 눌러 주세요', true); });
+}
+document.getElementById('brand').innerHTML = brandHTML('ciband');
+document.getElementById('sub').textContent = EVENT.date + ' · ' + EVENT.place;
+document.getElementById('tchip').textContent = TABLE ? TABLE + '번 테이블' : '';
+render();
+</script>
+</body>
+</html>

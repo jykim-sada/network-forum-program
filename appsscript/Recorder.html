@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>기록자 · 네트워크 포럼 운영 프로그램</title>
+<style>
+@font-face{font-family:'GyeonggiTitle';font-weight:500;font-display:swap;src:url('https://cdn.jsdelivr.net/gh/fonts-archive/GyeonggiTitle/GyeonggiTitle-Medium.woff2') format('woff2')}
+@font-face{font-family:'GyeonggiTitle';font-weight:700;font-display:swap;src:url('https://cdn.jsdelivr.net/gh/fonts-archive/GyeonggiTitle/GyeonggiTitle-Bold.woff2') format('woff2')}
+:root{--gg:#0E4194;--gg-l:#1B5AAE;--gg-d:#072448;--teal:#00A496;--lime:#ABCD03;--orange:#F39800;--deep:#ED6100;--bg:#F1F4F9;--ink:#161C26;--muted:#5F6979;--line:#DEE4EE;--card:#FFFFFF;--soft:#EEF2F8;--ok:#00786E;--gold:#B86E00;--gold-bg:#FFF6E9;--t1:#00A496;--t2:#ABCD03;--t3:#F39800;--t4:#ED6100}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"GyeonggiTitle","Malgun Gothic","맑은 고딕",system-ui,sans-serif;font-size:15px;line-height:1.55}
+button{font:inherit;cursor:pointer}
+textarea,input,select{font:inherit;color:inherit}
+h3{font-size:15px;margin:0 0 10px}
+h3 small{font-weight:400;color:var(--muted);margin-left:6px}
+.ciband{background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;padding:10px 16px}
+.ciband img.gg{height:24px;width:auto;display:block}.ciband img.hc{height:32px;width:auto;display:block}
+.ciband .sp{flex:1}.ciband .ttl{color:var(--gg);font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.tri{height:4px;display:flex}.tri i{flex:1}
+.tri i:nth-child(1){background:var(--teal)}.tri i:nth-child(2){background:var(--lime)}.tri i:nth-child(3){background:var(--orange)}
+.top{position:sticky;top:0;z-index:10;background:var(--gg);color:#fff;display:flex;align-items:center;gap:14px;padding:10px 16px;flex-wrap:wrap}
+.brand{font-weight:700;line-height:1.2}
+.brand small{display:block;font-weight:400;opacity:.7;font-size:12px}
+.now{margin-left:auto;font-size:13px;opacity:.9}
+.now b{font-size:20px;font-variant-numeric:tabular-nums;margin-right:6px}
+.pill{display:inline-block;border-radius:999px;padding:2px 10px;font-size:12px;background:rgba(255,255,255,.18);color:#fff}
+main{max-width:1180px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px}
+.tb{display:inline-block;padding:2px 8px;border-radius:.4em;font-size:12px;font-weight:700;color:var(--ink)}
+.tb.t1{background:var(--t1)}.tb.t2{background:var(--t2)}.tb.t3{background:var(--t3)}.tb.t4{background:var(--t4);color:#fff}
+.rec-head{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.rec-head select{padding:6px 10px;border:1px solid var(--line);border-radius:6px;background:#fff}
+.rec-head select:disabled{background:var(--soft);color:var(--muted)}
+.lock{display:inline-block;border-radius:.4em;padding:2px 8px;font-size:12px;background:var(--soft);color:var(--muted)}
+.firstq{flex-basis:100%}
+.firstq summary{cursor:pointer;color:var(--muted);font-size:13px}
+.firstq p{margin:6px 0 0}
+.rtabs{display:flex;gap:6px;margin:8px 0;flex-wrap:wrap}
+.rtabs button{background:#fff;border:1px solid var(--line);border-radius:6px;padding:8px 14px}
+.rtabs button.on{background:var(--gg);color:#fff;border-color:var(--gg)}
+.rtabs button small{color:var(--muted)}.rtabs button.on small{color:#fff;opacity:.8}
+.st{display:inline-block;border-radius:.4em;padding:1px 7px;font-size:11px;font-weight:700;margin-left:6px;background:var(--soft);color:var(--muted)}
+.st.draft{background:var(--gold-bg);color:var(--gold)}
+.st.done{background:#E0F5F2;color:var(--ok)}
+.rtabs button.on .st{background:rgba(255,255,255,.2);color:#fff}
+.strip{display:grid;grid-template-columns:5fr 5fr 12fr 13fr 5fr;gap:3px;margin:10px 0}
+.strip.one{grid-template-columns:1fr}
+.strip div{background:var(--soft);border-radius:4px;padding:6px 8px;font-size:12px;color:var(--muted);text-align:center}
+.strip div b{display:block;color:var(--ink);font-size:13px}
+.strip div.on{background:var(--gg);color:#fff}.strip div.on b{color:#fff}
+.strip div.done{opacity:.45}
+.strip-off{background:var(--soft);border-radius:4px;padding:8px 12px;font-size:13px;color:var(--muted);margin:10px 0}
+.rec-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:12px;align-items:start}
+.note{display:block;width:100%;min-height:60vh;padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:var(--card);resize:vertical;font-size:16px;line-height:1.7}
+.note::placeholder,.wish textarea::placeholder{color:var(--muted);opacity:.7}
+.note:focus,.wish textarea:focus{outline:none;border-color:var(--gg);box-shadow:0 0 0 2px rgba(14,65,148,.18)}
+.savebar{font-size:12px;color:var(--muted);display:flex;justify-content:space-between;gap:10px;margin-top:6px;flex-wrap:wrap}
+.savebar .err{color:#B23A2E;font-weight:700}
+.savebar .okm{color:var(--ok)}
+.savebar .sp{flex:1}
+.savebar .btn{background:var(--gg);color:#fff;border:0;border-radius:6px;padding:9px 20px;font:inherit;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap}
+.savebar .btn:hover{filter:brightness(1.08)}
+.savebar .btn:disabled{opacity:.5;cursor:default}
+.savehint{margin:6px 0 0;font-size:12px;color:var(--muted)}
+.wish{display:block;margin-top:12px}
+.wish .lb{display:block;font-size:13px;font-weight:700;margin-bottom:4px}
+.wish textarea{display:block;width:100%;min-height:64px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);resize:vertical}
+.wish small{display:block;text-align:right;font-size:12px;color:var(--muted);margin-top:2px}
+.prompts summary{cursor:pointer;font-weight:700;color:var(--gg)}
+.prompts .lb{font-size:12px;color:var(--muted);font-weight:700;margin:10px 0 4px}
+.prompts .q{background:var(--soft);border-left:4px solid var(--gg);border-radius:0 8px 8px 0;padding:10px 12px;margin:0;font-weight:700;line-height:1.5;font-size:14px}
+.prompts ol{margin:0;padding-left:20px;font-size:14px}
+.prompts ol li{margin-bottom:6px}
+.flow{display:flex;flex-wrap:wrap;gap:4px;align-items:center;font-size:13px}
+.flow b{background:var(--soft);border-radius:.4em;padding:3px 8px;font-weight:700}
+.flow i{color:var(--muted);font-style:normal}
+.prompts .tip{font-size:12px;color:var(--muted);margin:8px 0 0}
+.prev{background:var(--soft);border-radius:8px;padding:14px 16px}
+.prev .one{font-size:20px;font-weight:700;color:var(--gg);line-height:1.4;margin:0 0 8px}
+.prev ol{margin:0 0 10px;padding-left:20px}
+.prev .cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:14px}
+.prev .cols b{display:block;font-size:12px;color:var(--muted);margin-bottom:2px}
+.prev .raw{white-space:pre-wrap;font-size:14px;line-height:1.6;margin:0}
+.prev .dim{color:var(--muted)}
+.prev .foot{margin-top:8px;font-size:12px;color:var(--muted)}
+.hint{color:var(--muted);font-size:13px;margin:0 0 12px}
+@media (max-width:820px){main{padding:12px}.rec-grid{grid-template-columns:1fr}.rec-grid aside{order:-1}.prev .cols{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<script>var CFG = <?!= CFG ?>;</script>
+<?!= include('Common') ?>
+<div id="brand"></div>
+<header class="top"><div class="brand">기록자 화면 <span class="pill">테이블당 1명 · 태블릿/노트북</span><small id="evline"></small></div><div class="now" id="now"></div></header>
+<main id="app"></main>
+<script>
+/* ---- 테이블·라운드 선택: QR/no 로 테이블이 고정되면 선택을 잠근다 ---- */
+var FIXED = Number(CFG.no) || 0; if (!FIXED) { try { FIXED = Number(new URLSearchParams(location.search).get('no')) || 0; } catch (e0) { FIXED = 0; } }   // 로컬 미리보기에서도 ?no=3 으로 테이블 고정
+if (!(FIXED >= 1 && FIXED <= 9)) FIXED = 0;
+var L = { table: FIXED || 1, round: 1 };
+try { var saved = JSON.parse(sessionStorage.getItem('gwb-rec') || '{}'); if (!FIXED && saved.table >= 1 && saved.table <= 9) L.table = saved.table; if (saved.round === 1 || saved.round === 2) L.round = saved.round; } catch (e) {}
+function saveL() { try { sessionStorage.setItem('gwb-rec', JSON.stringify(L)); } catch (e) {} }
+var NOTE_MAX = 6000, WISH_MAX = 500;
+/* 주제별 예비 질문(이야기가 멈출 때). 첫 질문은 Common 의 TOPICS[].q 를 그대로 쓴다 */
+var REC_SUBQ = {
+  1: ['돌봄 때문에 미루거나 멈춘 것은 무엇이었나요?', '이제 나를 위해 시작한 것, 또는 시작하고 싶은 것은 무엇인가요?', '그 시작에 필요한 것은 무엇인가요? (시간 · 사람 · 돈 · 제도)'],
+  2: ['퇴직 후 하루와 사람 관계에서 가장 달라진 것은 무엇인가요?', '새로 만든 일과나 만남이 있나요? 아직이라면 어떤 걸 만들고 싶으세요?', '그걸 만드는 데 도움이 된 것과 부족했던 것은 무엇인가요?'],
+  3: ['처음 모임에 나간 계기는 무엇이었나요? 아직이라면 무엇이 걸리나요?', '나에게 맞았던 모임과 아니었던 모임, 무엇이 달랐나요?', '첫걸음을 떼려면 무엇이 있어야 할까요? (정보 · 시간 · 비용 · 분위기)'],
+  4: ['우리 모임이 지금 가장 아쉬운 것, 필요한 것은 무엇인가요?', '다른 모임은 그걸 어떻게 했나요? 누구와 연결되면 무엇을 함께할 수 있을까요?', '첫 번째로 함께 해볼 일은 무엇이고, 그러려면 무엇이 있어야 할까요?']
+};   // 운영계획안 「주제별 세부 질문(퍼실리테이터용)」 ① 지나온 것 → ② 지금 하는 것 → ③ 필요한 것
+var REC_FLOW = ['① 지나온 것', '② 지금 하는 것', '③ 필요한 것'];
+var promptsOpen = null, firstqOpen = false;   // 접기 상태: 재렌더(폴링)돼도 유지. promptsOpen null = 폭에 따라 기본값
+/* ---- 편집본: 서버보다 내가 최신이면(dirty) 서버 값으로 덮지 않는다. 테이블별로 따로 둔다 ---- */
+var local = {};   // local[t] = { records:{1:null,2:null}, dirty:{1:false,2:false} }
+function loc(t) { if (!local[t]) local[t] = { records: { 1: null, 2: null }, dirty: { 1: false, 2: false } }; return local[t]; }
+function curRec(r, t) { t = t || L.table; var x = loc(t).records[r] || rec(t, r) || {}; return { note: x.note || '', wish: x.wish || '', updatedAt: x.updatedAt || '' }; }
+function setLocal(r, patch) { var lc = loc(L.table), x = curRec(r); if (patch.note !== undefined) x.note = String(patch.note).slice(0, NOTE_MAX); if (patch.wish !== undefined) x.wish = String(patch.wish).slice(0, WISH_MAX); lc.records[r] = x; lc.dirty[r] = true; }
+function anyDirty() { for (var t in local) if (local[t].dirty[1] || local[t].dirty[2]) return true; return false; }
+/* ---- 자동 저장: 1.2초 디바운스, 실패하면 4초 뒤 재시도 ---- */
+var saveTimer = null, pending = null, saveMsg = '', saveErr = false;   // pending = {t,r} 저장을 기다리는 라운드
+function scheduleSave(r) {
+  var t = L.table;
+  if (pending && (pending.t !== t || pending.r !== r)) { clearTimeout(saveTimer); doSave(pending.t, pending.r); }   // 다른 라운드가 기다리는 중이면 먼저 보낸다
+  clearTimeout(saveTimer); pending = { t: t, r: r }; saveMsg = '저장 대기…'; saveErr = false; updateSaveBar();
+  saveTimer = setTimeout(function () { doSave(t, r); }, 1200);
+}
+function doSave(t, r, done) {   // done=true: 「저장」 버튼(작성 완료로 표시). 자동 저장은 done 없이 → 고친 뒤에는 완료가 풀린다
+  var lc = loc(t), x = curRec(r, t), rv = { note: x.note, wish: x.wish, done: !!done };
+  clearTimeout(saveTimer); pending = null; saveMsg = '저장 중…'; saveErr = false; updateSaveBar();
+  API.call('saveRecord', [t, r, rv], function (res) {
+    if (res && res.ok === false) { saveMsg = '저장 실패 · ' + (res.error || '입력값을 확인해 주세요'); saveErr = true; updateSaveBar(); return; }   // 검사 실패는 재시도하지 않음(고쳐 쓰면 다시 저장)
+    if (lc.records[r] && lc.records[r].note === rv.note && lc.records[r].wish === rv.wish) lc.dirty[r] = false;
+    saveMsg = (done ? '저장됨 · 작성 완료 · ' : '자동 저장됨 · ') + (res && res.at ? res.at : nowHM()); saveErr = false; updateSaveBar();
+    if (S.records && S.records[t] && S.records[t][r]) S.records[t][r] = { note: rv.note, wish: rv.wish, updatedAt: (res && res.at) || nowHM(), done: !!done };   // 다음 폴링을 기다리지 않고 라운드 탭 상태를 바로 맞춘다
+    updateChips(); forceRefresh();
+  }, function () {
+    saveMsg = '저장 실패 · 잠시 후 자동 재시도'; saveErr = true; updateSaveBar();
+    if (lc.dirty[r] && !pending) { pending = { t: t, r: r }; saveTimer = setTimeout(function () { doSave(t, r, done); }, 4000); }
+  });
+}
+function flushSaves() { clearTimeout(saveTimer); pending = null; for (var t in local) { [1, 2].forEach(function (r) { if (local[t].dirty[r]) doSave(Number(t), r); }); } }
+window.addEventListener('beforeunload', function (e) { if (anyDirty()) { flushSaves(); e.preventDefault(); e.returnValue = ''; } });
+function updateSaveBar() { var m = document.getElementById('saveMsg'); if (m) { m.textContent = saveMsg; m.className = saveErr ? 'err' : (saveMsg.indexOf('저장됨') === 0 ? 'okm' : ''); } }
+function updateCounts() { var n = document.getElementById('note'), w = document.getElementById('wish'), c = document.getElementById('cnt'), wc = document.getElementById('wcnt'); if (c) c.textContent = ''; if (wc) wc.textContent = ''; }   // 글자 수는 보여 주지 않는다
+function phTime(key) { for (var i = 0; i < PH.length; i++) if (PH[i][0] === key) return PH[i][2]; return ''; }
+function statusChip(r) { var s = recStatus(L.table, r); var lb = { wait: '대기', draft: '작성 중', done: '작성 완료' }[s] || '대기'; return '<span class="st ' + s + '">' + lb + '</span>'; }
+function updateChips() { document.querySelectorAll('.rtabs button').forEach(function (b) { var s = b.querySelector('.st'); if (s) s.outerHTML = statusChip(+b.dataset.r); }); }
+function stripHTML() {
+  var rs = roundState();
+  if (!rs) return '<div class="strip-off">지금은 ' + esc(phaseLabel()) + ' · 라운드 타이머는 운영진이 토론을 시작하면 켜집니다</div>';
+  if (rs.r !== L.round) return '<div class="strip-off">지금 진행 중인 것은 ' + rs.r + '라운드입니다 (' + rs.left + '분 남음)</div>';
+  return '<div class="strip one"><div class="on"><b>' + rs.r + '라운드 진행 중</b>' + (rs.over ? '시간 종료' : rs.left + '분 남음') + '</div></div>';   // 구간 없이 남은 시간만 (v3.3)
+}
+/* 오른쪽 「이야기를 끌어내는 말」 카드: 첫 질문 + 예비 질문 3개 + 흐름 안내. 폰에서는 접힌 채로 시작 */
+function promptsHTML(tp) {
+  var subq = REC_SUBQ[tp.id] || [];
+  var open = promptsOpen === null ? window.innerWidth > 820 : promptsOpen;
+  return '<details class="prompts"' + (open ? ' open' : '') + '><summary>이야기를 끌어내는 말</summary>' +
+    '<div class="lb">첫 질문 ① (전원이 한 번씩)</div><p class="q">' + esc(subq[0] || tp.q) + '</p>' +
+    '<div class="lb">이야기가 멈추면 ② · ③</div><ol start="2">' + subq.slice(1).map(function (q) { return '<li>' + esc(q) + '</li>'; }).join('') + '</ol>' +
+    '<div class="lb">핵심 질문 (기록지에 남길 것)</div><p class="q">' + esc(tp.q) + '</p>' +
+    '<div class="lb">이 순서로 따라가면 정리가 쉽습니다</div><div class="flow">' + REC_FLOW.map(function (s, i) { return (i ? '<i>→</i>' : '') + '<b>' + esc(s) + '</b>'; }).join('') + '</div>' +
+    '<p class="tip">누가 말했는지보다 어떤 상황·어떤 말이었는지를 적어 주세요. 짧은 메모라도 그대로 남기면 됩니다.</p></details>';
+}
+/* 하단 「이 테이블 결과 미리보기」: 분석 전엔 note 앞 200자, 분석 후엔 tableAnalysis(t) (읽기 전용) */
+function previewHTML() {
+  var t = L.table, a = tableAnalysis(t);
+  if (a) {
+    return '<div class="prev"><p class="one">' + (esc(a.one) || '<span class="dim">한 문장이 아직 없습니다</span>') + '</p>' +
+      '<ol>' + (a.points || []).map(function (p) { return '<li>' + esc(p) + '</li>'; }).join('') + '</ol>' +
+      '<div class="cols"><div><b>경기도에 바라는 것</b>' + (esc(a.wish) || '—') + '</div></div>' +
+      '<div class="foot">분석 완료 · 결과공유 때 스크린에 이렇게 나갑니다</div></div>';
+  }
+  var n = curRec(L.round).note.trim(); var head = n.slice(0, 200) + (n.length > 200 ? '…' : '');
+  return '<div class="prev"><p class="raw">' + (esc(head) || '<span class="dim">' + L.round + '라운드 기록이 아직 없습니다</span>') + '</p>' +
+    '<div class="foot">분석 전 · 15:00 이후 운영진이 분석 실행' + (n ? ' · ' + L.round + '라운드 기록 앞 200자' : '') + '</div></div>';
+}
+function updatePreview() { var w = document.getElementById('prevWrap'); if (w) w.innerHTML = previewHTML(); }
+function renderNow() { var s = st(); var rs = roundState(); document.getElementById('now').innerHTML = '<b>' + nowHM() + '</b>' + esc(phaseLabel()) + (rs ? ' · ' + rs.r + '라운드 ' + rs.left + '분 남음' : '') + (s.closed ? ' · 입력 마감됨' : ''); var el = document.getElementById('strip'); if (el) el.innerHTML = stripHTML(); }
+function render() {
+  var app = document.getElementById('app'); var t = L.table, tp = topicOf(t), rt = L.round; var x = curRec(rt);
+  app.innerHTML = '<p class="hint">토론 내용을 자유롭게 기록하면 분석 후 테이블 발표 슬라이드가 만들어집니다. 입력은 1~2초 뒤 자동 저장되고, 다 적은 뒤 「저장」을 누르면 스크린에 「작성 완료」로 표시됩니다.</p>' +
+    '<div class="rec-head"><label>테이블 <select id="selTable"' + (FIXED ? ' disabled' : '') + '>' + TABLES.map(function (n) { return '<option value="' + n + '" ' + (n === t ? 'selected' : '') + '>' + n + '번 (' + HALL[n] + ' · 주제 ' + TT[n] + ')</option>'; }).join('') + '</select></label>' +
+    (FIXED ? '<span class="lock">QR로 고정</span>' : '') + '<span class="tb t' + tp.id + '">주제 ' + tp.id + '</span><b>' + esc(tp.title) + '</b><span style="color:var(--muted)">(' + esc(tp.sub) + ')</span>' +
+    '<details class="firstq"' + (firstqOpen ? ' open' : '') + '><summary>퍼실리테이터 첫 질문 보기</summary><p>' + esc((REC_SUBQ[tp.id] || [])[0] || tp.q) + '</p></details></div>' +
+    '<div class="rtabs">' + [1, 2].map(function (r) { return '<button data-r="' + r + '" class="' + (rt === r ? 'on' : '') + '">' + r + '라운드 <small>' + phTime('r' + r) + '</small>' + statusChip(r) + '</button>'; }).join('') + '</div>' +
+    '<div id="strip">' + stripHTML() + '</div>' +
+    '<div class="rec-grid"><section class="card"><h3>' + rt + '라운드 기록<small>들은 이야기를 그대로 · 자동 저장</small></h3>' +
+    '<textarea class="note" id="note" maxlength="' + NOTE_MAX + '" placeholder="들은 이야기를 그대로, 길게 적어 주세요. 정리는 운영진이 분석을 실행해 만듭니다">' + esc(x.note) + '</textarea>' +
+    '<div class="savebar"><span id="saveMsg"></span><span class="sp"></span><button type="button" class="btn" id="saveNow" title="Ctrl+S">저장</button></div>' +
+    '<p class="savehint">「저장」을 누르면 이 라운드가 스크린·콘솔에 「작성 완료」로 표시됩니다. 그 뒤에 고치면 다시 「작성 중」이 되니, 다 적은 뒤 한 번 더 눌러 주세요.</p>' +
+    '<label class="wish"><span class="lb">경기도·시군에 꼭 전하고 싶은 것 (선택)</span><textarea id="wish" maxlength="' + WISH_MAX + '" placeholder="이 테이블에서 나온 건의·바람을 한두 문장으로">' + esc(x.wish) + '</textarea><small id="wcnt"></small></label></section>' +
+    '<aside class="card">' + promptsHTML(tp) + '</aside></div>' +
+    '<section class="card" style="margin-top:12px"><h3>이 테이블 결과 미리보기<small>결과공유 15:20~15:50 스크린 · 읽기 전용</small></h3><div id="prevWrap">' + previewHTML() + '</div></section>';
+  renderNow(); updateSaveBar(); updateCounts();
+  app.querySelector('#selTable').onchange = function (e) { var n = +e.target.value; if (n === L.table) return; flushSaves(); L.table = n; saveL(); render(); };
+  app.querySelectorAll('.rtabs button').forEach(function (b) { b.onclick = function () { L.round = +b.dataset.r; saveL(); render(); }; });
+  var note = app.querySelector('#note'); note.oninput = function () { setLocal(rt, { note: note.value }); scheduleSave(rt); updateCounts(); updatePreview(); };
+  var wish = app.querySelector('#wish'); wish.oninput = function () { setLocal(rt, { wish: wish.value }); scheduleSave(rt); updateCounts(); };
+  var saveNow = function () {   // 「저장」: 자동 저장을 기다리지 않고 지금 보내고, 작성 완료로 표시 (Ctrl+S 도 같음)
+    setLocal(rt, { note: note.value, wish: wish.value });
+    if (!note.value.trim() && !wish.value.trim()) { saveMsg = '내용을 적은 뒤 저장해 주세요'; saveErr = true; updateSaveBar(); return; }
+    doSave(L.table, rt, true);
+  };
+  app.querySelector('#saveNow').onclick = saveNow;
+  [note, wish].forEach(function (el) { el.onkeydown = function (e) { if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) { e.preventDefault(); saveNow(); } }; });
+  app.querySelector('details.prompts').ontoggle = function () { promptsOpen = this.open; };
+  app.querySelector('details.firstq').ontoggle = function () { firstqOpen = this.open; };
+}
+document.getElementById('brand').innerHTML = brandHTML('ciband');
+document.getElementById('evline').textContent = EVENT.name + ' · 운영 프로그램';
+setInterval(renderNow, 1000);
+startPolling(3000, function () {
+  // 서버 최신값 반영: 내가 고치고 있지 않은 라운드만 서버 값으로
+  for (var t in local) { [1, 2].forEach(function (r) { if (!local[t].dirty[r]) local[t].records[r] = null; }); }
+  var a = document.activeElement; var typing = a && (a.tagName === 'TEXTAREA' || a.tagName === 'INPUT' || a.tagName === 'SELECT');
+  if (typing) { renderNow(); updateChips(); if (tableAnalysis(L.table)) updatePreview(); } else render();
+});
+render();
+</script>
+</body>
+</html>

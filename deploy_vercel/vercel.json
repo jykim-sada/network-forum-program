@@ -1,0 +1,12 @@
+{
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "redirects": [
+    { "source": "/app", "destination": "https://script.google.com/macros/s/AKfycbzcLVeO9jF-hoaF8JtvSraJ_OO6SjOjV-oxClweNJ0erCuPtBTQfc_AXugG9oVo770/exec?page=start", "permanent": false },
+    { "source": "/screen", "destination": "https://script.google.com/macros/s/AKfycbzcLVeO9jF-hoaF8JtvSraJ_OO6SjOjV-oxClweNJ0erCuPtBTQfc_AXugG9oVo770/exec?page=screen", "permanent": false },
+    { "source": "/admin", "destination": "https://script.google.com/macros/s/AKfycbzcLVeO9jF-hoaF8JtvSraJ_OO6SjOjV-oxClweNJ0erCuPtBTQfc_AXugG9oVo770/exec?page=admin", "permanent": false },
+    { "source": "/recorder", "destination": "https://script.google.com/macros/s/AKfycbzcLVeO9jF-hoaF8JtvSraJ_OO6SjOjV-oxClweNJ0erCuPtBTQfc_AXugG9oVo770/exec?page=recorder", "permanent": false },
+    { "source": "/phone", "destination": "https://script.google.com/macros/s/AKfycbzcLVeO9jF-hoaF8JtvSraJ_OO6SjOjV-oxClweNJ0erCuPtBTQfc_AXugG9oVo770/exec?page=phone", "permanent": false },
+    { "source": "/print", "destination": "https://script.google.com/macros/s/AKfycbzcLVeO9jF-hoaF8JtvSraJ_OO6SjOjV-oxClweNJ0erCuPtBTQfc_AXugG9oVo770/exec?page=print", "permanent": false }
+  ]
+}
