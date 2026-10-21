@@ -511,7 +511,7 @@ function trendPages(T) { var ps = []; for (var i = 0; i < T.length; i += 2) ps.p
 function trendCardHTML(it, no) { return '<div class="tcard a' + (((no - 1) % 4) + 1) + '"><div class="tn">' + (no < 10 ? '0' + no : no) + '</div><div class="tw">' + esc(it.k) + '</div>' + (it.s ? '<div class="ts">' + esc(it.s) + '</div>' : '') + (it.m ? '<div class="tm">' + esc(it.m) + '</div>' : '') + '</div>'; }
 function trendSlide(T, pi, src, compact) {
   var ps = trendPages(T); var page = ps[pi] || [];
-  return '<div class="trend' + (compact ? ' compact' : '') + '"><div class="tk"><b>' + esc(src || '트렌드 코리아 2027') + '</b><span>' + (pi + 1) + ' / ' + ps.length + '</span></div><div class="tgrid' + (page.length === 1 ? ' one' : '') + '">' + page.map(function (it, j) { return trendCardHTML(it, pi * 2 + j + 1); }).join('') + '</div></div>';
+  return '<div class="trend' + (compact ? ' compact' : '') + '"><div class="tk"><b>' + esc(src || '트렌드 코리아 2027') + '</b></div><div class="tgrid' + (page.length === 1 ? ' one' : '') + '">' + page.map(function (it, j) { return trendCardHTML(it, pi * 2 + j + 1); }).join('') + '</div></div>';
 }
 /* 휴식·취합 화면 아래쪽: 0 = 수치 표, 1~n = 카드. 시각으로 정하므로 어느 화면이든 같은 칸을 본다 */
 function collectSlot(n, sec) { sec = Math.max(5, Number(sec) || 12); return Math.floor(nowServer() / (sec * 1000)) % (n + 1); }
