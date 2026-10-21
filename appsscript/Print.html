@@ -58,7 +58,7 @@ button{font:inherit;cursor:pointer}
 <div class="sheets" id="sheets"></div>
 <script>
 /* 테이블별 오늘의 한줄 주소: Apps Script 에서는 ?page=phone&t=N, 로컬 미리보기에서는 Phone.html?t=N */
-function phoneUrlFor(t) { return pageUrl('phone') + (CFG.url ? '&t=' + t : '?t=' + t); }
+function phoneUrlFor(t) { return pageUrlWith('phone', 't=' + t); }
 function sheetHTML(t) {
   var tp = topicOf(t);
   return '<section class="sheet">' + brandHTML('ciband') +

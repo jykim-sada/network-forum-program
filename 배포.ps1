@@ -22,6 +22,7 @@ if (-not $SkipApps) {
 if (-not $SkipVercel) {
   Write-Host "== Vercel" -ForegroundColor Cyan
   $dv = Join-Path $root "deploy_vercel"
+  & (Join-Path $app "build_vercel_app.ps1") | Out-Null   # 콘솔·스크린·기록자·참가자·인쇄·안내 페이지 → deploy_vercel\app (v3.12)
   if (Test-Path (Join-Path $root "스크린_스토리보드.html")) { Copy-Item (Join-Path $root "스크린_스토리보드.html") (Join-Path $dv "index.html") -Force }
   if (Test-Path (Join-Path $root "스크린_스토리보드.pdf")) { Copy-Item (Join-Path $root "스크린_스토리보드.pdf") (Join-Path $dv "storyboard.pdf") -Force }
   if (Test-Path (Join-Path $root "네트워크_포럼_운영프로그램_시뮬레이션.html")) { New-Item -ItemType Directory -Force (Join-Path $dv "sim") | Out-Null; Copy-Item (Join-Path $root "네트워크_포럼_운영프로그램_시뮬레이션.html") (Join-Path $dv "sim\index.html") -Force }

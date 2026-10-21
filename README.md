@@ -7,7 +7,7 @@
 | 폴더 · 파일 | 내용 |
 |---|---|
 | `appsscript/` | Apps Script 소스. `Code.gs`(서버) · `Common.html`(공통 JS · 로컬 MOCK) · `Screen` `Admin` `Recorder` `Phone` `Start` `Print`.html(화면) · `build_local_preview.ps1`(로컬 미리보기 빌드) |
-| `deploy_vercel/` | Vercel 에 올라가는 정적 파일. `index.html` 스토리보드 · `sim/` 시뮬레이션 · `storyboard.pdf` · `vercel.json`(짧은 주소 → Apps Script 연결) |
+| `deploy_vercel/` | Vercel 에 올라가는 정적 파일. `index.html` 스토리보드 · `sim/` 시뮬레이션 · `storyboard.pdf` · `app/`(콘솔·스크린·기록자·참가자·인쇄·안내 화면, `appsscript/build_vercel_app.ps1` 이 생성) · `vercel.json`(짧은 주소 → app 페이지) |
 | `조편성/` | 테이블 조편성 보조 도구(별도 Apps Script) |
 | `logo/` | 경기도 · 행복캠퍼스 로고 |
 | `설치_운영_가이드_20261006_v3.md` | 설치 · 당일 운영 · 문제 해결 안내 |
@@ -19,7 +19,7 @@
 ## 주소
 
 - 실제 프로그램(Apps Script): 콘솔 `…/exec?page=admin`, 스크린 `?page=screen`, 기록자 `?page=recorder&no=N`, 참가자 `?page=phone&t=N`, 인쇄 `?page=print`
-- Vercel: https://gg-forum-screen.vercel.app (스토리보드) · `/sim` (시뮬레이션) · `/storyboard.pdf` · `/admin` `/screen` `/recorder` `/phone` `/print` 는 실제 프로그램으로 넘어가는 짧은 주소
+- Vercel: https://gg-forum-screen.vercel.app (스토리보드) · `/sim` (시뮬레이션) · `/storyboard.pdf` · `/admin` `/screen` `/recorder?no=N` `/phone?t=N` `/print` `/app` 은 실제 화면 (v3.12부터 Vercel 에서 직접 열리고, 자료는 Apps Script JSON API 로 읽고 씀)
 
 ## 배포
 

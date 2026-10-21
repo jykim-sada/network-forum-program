@@ -130,6 +130,7 @@ function doGet(e) {
   var page = (e && e.parameter && e.parameter.page) ? String(e.parameter.page).toLowerCase() : 'start';
   if (page === 'push') return pushLine_(e);                             // 리허설 입력 통로 (시트 메뉴에서 열었을 때만)
   if (page === 'snapshot') return ContentService.createTextOutput(JSON.stringify(getSnapshot(0))).setMimeType(ContentService.MimeType.JSON);   // 읽기 전용: 스크린이 받는 것과 같은 스냅샷(스토리보드·점검용). 쓰기 없음
+  if (e && e.parameter && e.parameter.api === '1') return apiCall_(e.parameter.fn, e.parameter.args);   // JSON API(GET): Vercel 에서 띄운 화면이 읽기(getSnapshot 긴 폴링)에 쓴다 (v3.12)
   var map = { start: ['Start', '안내'], phone: ['Phone', '오늘의 한줄'], screen: ['Screen', '스크린'], recorder: ['Recorder', '기록자'], admin: ['Admin', '운영진 콘솔'], print: ['Print', '테이블 QR 인쇄'] };
   if (!map[page]) page = 'start';
   ensureSheets_();
@@ -143,6 +144,25 @@ function doGet(e) {
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 function include(name) { return HtmlService.createHtmlOutputFromFile(name).getContent(); }
+
+/* ---- JSON API (v3.12): 화면을 Vercel 등 다른 서버에서 띄울 때 google.script.run 대신 fetch 로 부른다.
+ *  허용 목록의 공개 함수만, 인자는 JSON 배열. PIN 검사는 각 admin 함수 안에서 그대로. 오류는 {__error} 로 돌려 클라이언트의 실패 처리로 간다.
+ *  읽기(getSnapshot)는 GET ?api=1&fn=&args=, 쓰기는 POST(본문 {fn,args}, text/plain 이라 브라우저 사전 요청 없음). */
+var API_FNS = { getSnapshot: 1, addLine: 1, updateLine: 1, deleteLine: 1, markDone: 1, setEditing: 1, saveRecord: 1, screenReport: 1, adminCheckPin: 1, adminSetState: 1, adminSetProgram: 1, adminAnalyze: 1, adminReset: 1, adminFillDemo: 1, adminHideLine: 1, adminRefresh: 1 };
+function doPost(e) {
+  var body = {}; try { body = JSON.parse((e && e.postData && e.postData.contents) || '{}') || {}; } catch (err) { body = {}; }
+  return apiCall_(body.fn, body.args);
+}
+function apiCall_(fn, args) {
+  var out;
+  try {
+    fn = String(fn || ''); if (!API_FNS[fn] || typeof globalThis[fn] !== 'function') throw new Error('없는 기능: ' + fn);
+    if (typeof args === 'string') { try { args = JSON.parse(args); } catch (e2) { args = []; } }
+    if (!Array.isArray(args)) args = [];
+    out = globalThis[fn].apply(null, args); if (out === undefined) out = null;
+  } catch (err) { out = { __error: String(err && err.message ? err.message : err) }; }
+  return ContentService.createTextOutput(JSON.stringify(out)).setMimeType(ContentService.MimeType.JSON);
+}
 
 /* 리허설 입력 통로: <웹앱주소>?page=push&text=...&dev=...&t=3
  * 시트 메뉴 「리허설 입력 통로 열기」로 켠 동안에만 동작한다. 행사 당일에는 「닫기」로 막는다.
