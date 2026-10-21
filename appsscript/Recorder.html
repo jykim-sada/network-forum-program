@@ -120,6 +120,7 @@ function setLocal(r, patch) { var lc = loc(L.table), x = curRec(r); if (patch.no
 function anyDirty() { for (var t in local) if (local[t].dirty[1] || local[t].dirty[2]) return true; return false; }
 /* ---- 자동 저장: 1.2초 디바운스, 실패하면 4초 뒤 재시도 ---- */
 var saveTimer = null, pending = null, saveMsg = '', saveErr = false;   // pending = {t,r} 저장을 기다리는 라운드
+var inflight = false, queued = null;   // 서버 응답을 기다리는 동안 들어온 저장은 한 건만 줄 세워 뒀다가 순서대로 보낸다 (v3.9.11)
 function scheduleSave(r) {
   var t = L.table;
   if (pending && (pending.t !== t || pending.r !== r)) { clearTimeout(saveTimer); doSave(pending.t, pending.r); }   // 다른 라운드가 기다리는 중이면 먼저 보낸다
@@ -127,19 +128,24 @@ function scheduleSave(r) {
   saveTimer = setTimeout(function () { doSave(t, r); }, 1200);
 }
 function doSave(t, r, done) {   // done=true: 「저장」 버튼(작성 완료로 표시). 자동 저장은 done 없이 → 고친 뒤에는 완료가 풀린다
+  if (inflight) { queued = { t: t, r: r, done: !!done }; return; }   // 자동 저장이 아직 서버에 가 있는데 「저장」을 누르면, 앞 건이 끝난 뒤 보낸다 — 먼저 보낸 자동 저장(완료 아님)이 나중에 도착해 완료가 풀리는 일을 막는다. 마지막 뜻(완료/수정)이 이긴다
   var lc = loc(t), x = curRec(r, t), rv = { note: x.note, wish: x.wish, done: !!done };
-  clearTimeout(saveTimer); pending = null; saveMsg = '저장 중…'; saveErr = false; updateSaveBar();
+  clearTimeout(saveTimer); pending = null; saveMsg = '저장 중…'; saveErr = false; updateSaveBar(); inflight = true;
   API.call('saveRecord', [t, r, rv], function (res) {
-    if (res && res.ok === false) { saveMsg = '저장 실패 · ' + (res.error || '입력값을 확인해 주세요'); saveErr = true; updateSaveBar(); return; }   // 검사 실패는 재시도하지 않음(고쳐 쓰면 다시 저장)
+    inflight = false;
+    if (res && res.ok === false) { saveMsg = '저장 실패 · ' + (res.error || '입력값을 확인해 주세요'); saveErr = true; updateSaveBar(); nextSave(); return; }   // 검사 실패는 재시도하지 않음(고쳐 쓰면 다시 저장)
     if (lc.records[r] && lc.records[r].note === rv.note && lc.records[r].wish === rv.wish) lc.dirty[r] = false;
     saveMsg = (done ? '저장됨 · 작성 완료 · ' : '자동 저장됨 · ') + (res && res.at ? res.at : nowHM()); saveErr = false; updateSaveBar();
     if (S.records && S.records[t] && S.records[t][r]) S.records[t][r] = { note: rv.note, wish: rv.wish, updatedAt: (res && res.at) || nowHM(), done: !!done };   // 다음 폴링을 기다리지 않고 라운드 탭 상태를 바로 맞춘다
-    updateChips(); forceRefresh();
+    updateChips(); forceRefresh(); nextSave();
   }, function () {
+    inflight = false;
     saveMsg = '저장 실패 · 잠시 후 자동 재시도'; saveErr = true; updateSaveBar();
     if (lc.dirty[r] && !pending) { pending = { t: t, r: r }; saveTimer = setTimeout(function () { doSave(t, r, done); }, 4000); }
+    nextSave();
   });
 }
+function nextSave() { if (queued) { var q = queued; queued = null; doSave(q.t, q.r, q.done); } }
 function flushSaves() { clearTimeout(saveTimer); pending = null; for (var t in local) { [1, 2].forEach(function (r) { if (local[t].dirty[r]) doSave(Number(t), r); }); } }
 window.addEventListener('beforeunload', function (e) { if (anyDirty()) { flushSaves(); e.preventDefault(); e.returnValue = ''; } });
 function updateSaveBar() { var m = document.getElementById('saveMsg'); if (m) { m.textContent = saveMsg; m.className = saveErr ? 'err' : (saveMsg.indexOf('저장됨') === 0 ? 'okm' : ''); } }
