@@ -400,6 +400,7 @@ var MOCK = (function () {
       var d = load(); d.records[t][r] = { note: note, wish: wish, updatedAt: nowHM(), done: done }; bump(d); return { ok: true, rev: d.rev, at: nowHM(), done: done };
     },
     adminCheckPin: function (pin) { return { ok: true, url: '', hasKey: false }; },
+    adminRefresh: function (pin) { var d = load(); bump(d); return { ok: true }; },
     adminSetState: function (pin, patch) {
       if (patch == null) patch = {}; if (!isObj(patch)) return fail('상태 변경 형식 오류');
       var d = load(), s = d.state;

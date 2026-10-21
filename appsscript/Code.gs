@@ -173,6 +173,7 @@ function onOpen() {
     .addItem('리허설 입력 통로 열기 (자동 입력 테스트용)', 'openRehearsal')
     .addItem('리허설 입력 통로 닫기', 'closeRehearsal')
     .addItem('진행 상태 초기화 (입력 유지)', 'resetStateMenu')
+    .addItem('화면 새로 고침 (시트를 직접 고친 뒤)', 'refreshMenu')
     .addItem('오늘의 한줄 전체 비우기', 'clearLinesMenu')
     .addItem('전체 비우기 (기록·한줄·분석 — 프로그램 설정은 유지)', 'clearAllMenu')
     .addToUi();
@@ -218,7 +219,12 @@ function checkState() {
     '\n프로그램: 발표자 ' + prog.speakers.length + '명 · 인사말 ' + prog.greet.filter(function (g) { return g.name && g.kind !== 'cong'; }).length + '명 · 축사 ' + prog.greet.filter(function (g) { return g.name && g.kind === 'cong'; }).length + '명 · 명단 ' + rosterN + '명 · 영상 ' + (prog.video.url ? '있음' : '없음') +
     '\n개정 번호: ' + getRev_() + '\nAPI 키: ' + (p.getProperty('ANTHROPIC_API_KEY') ? '있음' : '없음') + '\n리허설 입력 통로: ' + (p.getProperty('REHEARSAL') === 'Y' ? '열림' : '닫힘') + '\n운영진 PIN: ' + getPin_());
 }
-function resetStateMenu() { saveState_(defaultState_()); SpreadsheetApp.getActive().toast('진행 상태를 처음(등록)으로 되돌렸습니다.', '발표보드', 5); }
+function resetStateMenu() { saveState_(defaultState_()); bumpRev_(); SpreadsheetApp.getActive().toast('진행 상태를 처음(등록)으로 되돌렸습니다.', '발표보드', 5); }
+function refreshMenu() { bumpRev_(); SpreadsheetApp.getActive().toast('화면들이 시트를 다시 읽습니다 (몇 초 안에 반영).', '발표보드', 5); }   // 시트를 손으로 고친 뒤 (v3.10.4)
+/* 시트를 손으로 고치면(기록·한줄·분석·설정) 스냅샷 캐시를 지워 화면이 다시 읽게 한다 — 단순 트리거: 사용자가 시트에서 직접 고칠 때만 실행되고, 스크립트가 쓴 값에는 실행되지 않는다 (v3.10.4) */
+function onEdit(e) {
+  try { var name = e && e.range && e.range.getSheet().getName(); if ([SHEET_REC, SHEET_LINES, SHEET_ANA, SHEET_SET].indexOf(name) >= 0) bumpRev_(); } catch (err) {}
+}
 function clearLinesMenu() { clearLines_(); SpreadsheetApp.getActive().toast('오늘의 한줄을 모두 비웠습니다.', '발표보드', 5); }
 function clearAllMenu() {
   var ui = SpreadsheetApp.getUi();
@@ -600,9 +606,10 @@ function adminHideLine(pin, id, hidden) {
 }
 /* 콘솔 「리허설용 예시 데이터 채우기」 — 시트 메뉴의 fillDemoData 와 같음 */
 function adminFillDemo(pin) { checkPin_(pin); fillDemoData(); return { ok: true }; }
+function adminRefresh(pin) { checkPin_(pin); bumpRev_(); return { ok: true }; }   // 콘솔 「화면 새로 고침」: 스냅샷 캐시만 지운다(자료 변경 없음) (v3.10.4)
 function adminReset(pin, mode) {
   checkPin_(pin);
-  if (mode === 'state') saveState_(defaultState_());
+  if (mode === 'state') { saveState_(defaultState_()); bumpRev_(); }   // 캐시를 통째로 지워 시트를 손으로 고친 것도 반영 (v3.10.4)
   else if (mode === 'lines') clearLines_();
   else if (mode === 'all') clearAll_();
   else return { ok: false, error: '초기화 종류 오류 (state·lines·all)' };

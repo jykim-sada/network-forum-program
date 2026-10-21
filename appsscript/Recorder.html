@@ -222,7 +222,12 @@ startPolling(3000, function () {
   // 서버 최신값 반영: 내가 고치고 있지 않은 라운드만 서버 값으로
   for (var t in local) { [1, 2].forEach(function (r) { if (!local[t].dirty[r]) local[t].records[r] = null; }); }
   var a = document.activeElement; var typing = a && (a.tagName === 'TEXTAREA' || a.tagName === 'INPUT' || a.tagName === 'SELECT');
-  if (typing) { renderNow(); updateChips(); if (tableAnalysis(L.table)) updatePreview(); } else render();
+  if (typing) {
+    renderNow(); updateChips(); if (tableAnalysis(L.table)) updatePreview();
+    /* 커서가 칸에 있어도 내가 고치는 중이 아니면 서버 값으로 칸을 맞춘다(운영진이 비우거나 다른 기기에서 고친 경우). 전엔 옛 글이 칸에 남아 한 글자만 쳐도 옛 글째 다시 저장됐다 (v3.10.4) */
+    if (!loc(L.table).dirty[L.round]) { var sv = curRec(L.round); var ne = document.getElementById('note'), we = document.getElementById('wish'); var ch = false;
+      if (ne && ne.value !== sv.note) { ne.value = sv.note; ch = true; } if (we && we.value !== sv.wish) { we.value = sv.wish; ch = true; } if (ch) { updateCounts(); updatePreview(); } }
+  } else render();
 });
 render();
 </script>

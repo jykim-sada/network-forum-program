@@ -301,7 +301,7 @@ function renderControl() {
       '<div class="row" style="margin-top:6px"><label style="font-size:13px">전환 간격 <input class="num" id="lvSec" type="number" inputmode="numeric" pattern="[0-9]*" min="5" max="120" value="' + lv.sec + '"> 초</label></div>' +
       '<div class="radios" style="margin-top:6px;font-size:13px">고정: <label><input type="radio" name="lvPin" value="" ' + (!lv.pin ? 'checked' : '') + '> 순환</label>' + LIVE_PANELS.map(function (k) { return '<label><input type="radio" name="lvPin" value="' + k + '" ' + (lv.pin === k ? 'checked' : '') + '> ' + LV_LABELS[k] + '</label>'; }).join('') + '</div>' +
       '<div class="row" style="margin-top:8px"><button class="btn sm" id="saveLive">라운드 화면 저장</button>' + (LV ? '<span class="pill warn">저장 안 됨</span>' : '') + '</div>';
-  v.querySelector('#ctlAdmin').innerHTML = '<h3>관리<small>되돌릴 수 없는 작업</small></h3><div class="row"><button class="btn ghost sm" id="rsState">진행 상태만 초기화</button><button class="btn danger sm" id="rsLines">오늘의 한줄 전체 삭제</button><button class="btn danger sm" id="rsAll">전체 비우기 (기록·한줄·분석)</button><button class="btn ghost sm" id="fillDemo">리허설용 예시 데이터 채우기</button><span style="font-size:12px;color:var(--muted)">프로그램·참가자 명단은 남습니다' + (API.isLocal ? '' : ' · 시트 메뉴 「발표보드」에서도 할 수 있습니다') + '</span></div>';
+  v.querySelector('#ctlAdmin').innerHTML = '<h3>관리<small>되돌릴 수 없는 작업</small></h3><div class="row"><button class="btn ghost sm" id="rsState">진행 상태만 초기화</button><button class="btn danger sm" id="rsLines">오늘의 한줄 전체 삭제</button><button class="btn danger sm" id="rsAll">전체 비우기 (기록·한줄·분석)</button><button class="btn ghost sm" id="fillDemo">리허설용 예시 데이터 채우기</button><button class="btn ghost sm" id="refreshAll" title="시트를 직접 고친 뒤 화면들이 시트를 다시 읽게 합니다">화면 새로 고침</button><span style="font-size:12px;color:var(--muted)">프로그램·참가자 명단은 남습니다' + (API.isLocal ? '' : ' · 시트 메뉴 「발표보드」에서도 할 수 있습니다') + '</span></div>';
   wireCue(v); fitPreview();
   var q = function (id) { return v.querySelector('#' + id); };
   q('vPlay').onclick = function () { setState({ video: 'play' }, '스크린에 재생 신호를 보냈습니다'); };
@@ -319,6 +319,7 @@ function renderControl() {
   v.querySelectorAll('.lvPanel, #lvSec, [name=lvPin]').forEach(function (el) { el.onchange = function () { LV = readLive(v); }; });
   q('lvSec').oninput = function () { LV = readLive(v); };
   q('saveLive').onclick = saveLive;
+  q('refreshAll').onclick = function () { admin('adminRefresh', [], function () { toast('화면들이 시트를 다시 읽습니다 (몇 초 안에 반영)'); }); };   // v3.10.4
   q('rsState').onclick = function () { ask('진행 상태(단계·장표·타이머)를 처음으로 되돌릴까요? 입력 자료는 남습니다.', function () { admin('adminReset', ['state'], function () { toast('초기화했습니다'); }); }); };
   q('rsLines').onclick = function () { ask('오늘의 한줄을 전부 삭제할까요?', function () { admin('adminReset', ['lines'], function () { toast('삭제했습니다'); }); }); };
   q('fillDemo').onclick = function () { ask('기록 18건 · 한줄 24건 · 발표자 · 명단 · 분석 결과 예시를 채웁니다. 행사 전에는 「전체 비우기」로 지워 주세요. 계속할까요?', function () { if (API.isLocal) { API.call('mockFillDemo', [], function () { PG = null; RS = null; pgDrawn = rsDrawn = false; forceRefresh(); toast('예시 데이터를 채웠습니다'); }, function (e) { toast('실패: ' + (e && e.message ? e.message : e), true); }); } else { admin('adminFillDemo', [], function (r) { PG = null; RS = null; pgDrawn = rsDrawn = false; toast(r && r.ok ? '예시 데이터를 채웠습니다 · 곧 화면에 반영' : ('실패: ' + (r && r.error))); }); } }); };
