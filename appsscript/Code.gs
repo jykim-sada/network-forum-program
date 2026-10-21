@@ -297,7 +297,7 @@ function getRevFast_() { var c = CacheService.getScriptCache(); var v = null; tr
 /* 개정 번호 +1. patch 가 있으면(예: {state}·{lines}·{records}·{screen}) 캐시된 스냅샷의 그 칸만 바꿔 다음 폴링이 시트를 다시 읽지 않게 하고, 없으면 스냅샷 캐시를 지운다 (v3.9) */
 function bumpRev_(patch) {
   var lock = LockService.getScriptLock(); var locked = false;
-  try { lock.waitLock(3000); locked = true; } catch (e) {}
+  try { lock.waitLock(8000); locked = true; } catch (e) {}   // 등록 러시 때 한줄 쓰기가 잠금을 1~2초씩 잡는다 — 짧게 기다리다 포기하면 SNAP 을 지워 모두가 시트를 다시 읽게 되므로 참가자 쪽(8초)만큼 기다린다 (v3.10)
   var p = PropertiesService.getScriptProperties();
   var r = Number(p.getProperty('REV') || 0) + 1;
   p.setProperty('REV', String(r));
@@ -405,7 +405,7 @@ function getSnapshot(sinceRev, waitMs) {
   var cache = CacheService.getScriptCache();
   var c = null; try { c = cache.get('SNAP'); } catch (e) {}
   if (c) { try { var o = JSON.parse(c);
-    if (o.rev > rev) { Utilities.sleep(60); var rev2 = getRevFast_(); if (o.rev === rev2) rev = rev2; }   // SNAP 이 먼저, REV 가 나중에 써지는 짧은 순간이면 REV 를 한 번 더 읽어 맞춘다 (v3.10)
+    if (o.rev > rev) { Utilities.sleep(60); var rev2 = getRevFast_(); if (o.rev > rev2) { try { cache.put('REV', String(o.rev), 21600); } catch (e6) {} } rev = Math.max(rev2, o.rev); }   // SNAP 이 먼저, REV 가 나중에 써지는 짧은 순간이면 REV 를 한 번 더 읽고, 그래도 SNAP 이 새것이면(REV 캐시 쓰기 실패) SNAP 번호로 캐시를 고친다 — 번호는 속성에서만 커지므로 SNAP 이 더 새것일 수는 있어도 틀릴 수는 없다 (v3.10)
     if (o.rev === rev) { o.now = Date.now(); o.editing = editing; return o; } } catch (e2) {} }
   var snap = { rev: rev, state: getState_(), lines: readLines_().map(exportLine_), records: readRecords_(), program: readProgram_(), analysis: readAnalysis_(), screen: readScreen_() };
   var js = JSON.stringify(snap);
