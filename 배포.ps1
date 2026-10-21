@@ -26,7 +26,7 @@ if (-not $SkipVercel) {
   if (Test-Path (Join-Path $root "스크린_스토리보드.pdf")) { Copy-Item (Join-Path $root "스크린_스토리보드.pdf") (Join-Path $dv "storyboard.pdf") -Force }
   if (Test-Path (Join-Path $root "네트워크_포럼_운영프로그램_시뮬레이션.html")) { New-Item -ItemType Directory -Force (Join-Path $dv "sim") | Out-Null; Copy-Item (Join-Path $root "네트워크_포럼_운영프로그램_시뮬레이션.html") (Join-Path $dv "sim\index.html") -Force }
   Push-Location $dv
-  & $vercel deploy --prod --yes 2>&1 | Select-String -Pattern "Production|Aliased|rror" | ForEach-Object { $_.Line }
+  & $vercel deploy --prod --yes --archive=tgz 2>&1 | Select-String -Pattern "Production|Aliased|rror" | ForEach-Object { $_.Line }
   Pop-Location
 }
 
