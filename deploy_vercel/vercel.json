@@ -2,6 +2,7 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "rewrites": [
+    { "source": "/", "destination": "/app/start" },
     { "source": "/app", "destination": "/app/start" },
     { "source": "/screen", "destination": "/app/screen" },
     { "source": "/admin", "destination": "/app/admin" },
@@ -10,6 +11,7 @@
     { "source": "/print", "destination": "/app/print" }
   ],
   "headers": [
+    { "source": "/", "headers": [{ "key": "Cache-Control", "value": "no-store" }] },
     { "source": "/app/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store" }] },
     { "source": "/(screen|admin|recorder|phone|print|app)", "headers": [{ "key": "Cache-Control", "value": "no-store" }] }
   ]

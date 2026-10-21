@@ -555,6 +555,7 @@ var MOCK = (function () {
 <script>
 document.getElementById('brand').innerHTML = brandHTML('ciband');
 document.getElementById('sub').textContent = EVENT.date + ' ' + EVENT.time + ' · ' + EVENT.place;
+if (CFG.site) { var sb = String(CFG.site).replace(/[/]+$/, ''); document.getElementById('note').insertAdjacentHTML('afterend', '<p class="note">스크린 스토리보드: <a href="' + sb + '/storyboard">' + sb + '/storyboard</a> · 전체 시뮬레이션: <a href="' + sb + '/sim">' + sb + '/sim</a> · 스토리보드 PDF: <a href="' + sb + '/storyboard.pdf">' + sb + '/storyboard.pdf</a></p>'); }   // Vercel 웹앱 첫 화면일 때만 (v3.12.2)
 ['Phone:phone', 'Screen:screen', 'Rec:recorder', 'Admin:admin', 'Print:print'].forEach(function (x) { var p = x.split(':'); document.getElementById('l' + p[0]).href = pageUrl(p[1]); });
 document.getElementById('urlPhone').textContent = pageUrl('phone');
 qrInto(document.getElementById('qr'), pageUrl('phone'), 150);

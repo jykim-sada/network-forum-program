@@ -7,19 +7,19 @@
 | 폴더 · 파일 | 내용 |
 |---|---|
 | `appsscript/` | Apps Script 소스. `Code.gs`(서버) · `Common.html`(공통 JS · 로컬 MOCK) · `Screen` `Admin` `Recorder` `Phone` `Start` `Print`.html(화면) · `build_local_preview.ps1`(로컬 미리보기 빌드) |
-| `deploy_vercel/` | Vercel 에 올라가는 정적 파일. `index.html` 스토리보드 · `sim/` 시뮬레이션 · `storyboard.pdf` · `app/`(콘솔·스크린·기록자·참가자·인쇄·안내 화면, `appsscript/build_vercel_app.ps1` 이 생성) · `vercel.json`(짧은 주소 → app 페이지) |
+| `deploy_vercel/` | Vercel 에 올라가는 정적 파일. `storyboard.html` 스토리보드 · `sim/` 시뮬레이션 · `storyboard.pdf` · `app/`(콘솔·스크린·기록자·참가자·인쇄·안내 화면, `appsscript/build_vercel_app.ps1` 이 생성) · `vercel.json`(짧은 주소 → app 페이지) |
 | `조편성/` | 테이블 조편성 보조 도구(별도 Apps Script) |
 | `logo/` | 경기도 · 행복캠퍼스 로고 |
 | `설치_운영_가이드_20261006_v3.md` | 설치 · 당일 운영 · 문제 해결 안내 |
 | `배포정보_20261006_v3.md` | 배포 번호별 변경 내역 |
 | `DESIGN.md` | 색 · 글꼴 · 상태 토큰 |
-| `스크린_스토리보드.html` `.pdf` | 스크린 화면 44컷 스토리보드 |
+| `스크린_스토리보드.html` `.pdf` | 스크린 화면 42컷 스토리보드 |
 | `네트워크_포럼_운영프로그램_시뮬레이션.html` | 서버 없이 브라우저에서 도는 전체 시뮬레이션 |
 
 ## 주소
 
 - 실제 프로그램(Apps Script): 콘솔 `…/exec?page=admin`, 스크린 `?page=screen`, 기록자 `?page=recorder&no=N`, 참가자 `?page=phone&t=N`, 인쇄 `?page=print`
-- Vercel: https://gg-forum-screen.vercel.app (스토리보드) · `/sim` (시뮬레이션) · `/storyboard.pdf` · `/admin` `/screen` `/recorder?no=N` `/phone?t=N` `/print` `/app` 은 실제 화면 (v3.12부터 Vercel 에서 직접 열리고, 자료는 Apps Script JSON API 로 읽고 씀)
+- Vercel: https://gg-forum-screen.vercel.app (안내 페이지 = 웹앱 입구) · `/storyboard` (스토리보드) · `/sim` (시뮬레이션) · `/storyboard.pdf` · `/admin` `/screen` `/recorder?no=N` `/phone?t=N` `/print` `/app` 은 실제 화면 (v3.12부터 Vercel 에서 직접 열리고, 자료는 Apps Script JSON API 로 읽고 씀)
 
 ## 배포
 
