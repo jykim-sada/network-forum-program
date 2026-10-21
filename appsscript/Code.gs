@@ -648,8 +648,8 @@ var ANALYSIS_SCHEMA = {
   type: 'object', additionalProperties: false,
   required: ['tables', 'topics', 'wishes', 'oneline'],
   properties: {
-    tables: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['t', 'one', 'points', 'wish'], properties: {
-      t: { type: 'integer' }, one: { type: 'string' }, points: { type: 'array', items: { type: 'string' } }, wish: { type: 'string' } } } },   // 「함께할 일(todo)」은 v3.9.3 에서 삭제 — 기록자 화면에 적는 칸이 없음
+    tables: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['t', 'one', 'points', 'wish', 'kw'], properties: {
+      t: { type: 'integer' }, one: { type: 'string' }, points: { type: 'array', items: { type: 'string' } }, wish: { type: 'string' }, kw: { type: 'array', items: { type: 'string' } } } } },   // kw: 테이블 핵심어 (v3.10.3)   // 「함께할 일(todo)」은 v3.9.3 에서 삭제 — 기록자 화면에 적는 칸이 없음
     topics: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['id', 'sum', 'kw', 'sug'], properties: {
       id: { type: 'integer' }, sum: { type: 'string' }, kw: { type: 'array', items: { type: 'string' } }, sug: { type: 'array', items: { type: 'string' } } } } },
     wishes: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['text', 'tables'], properties: { text: { type: 'string' }, tables: { type: 'string' } } } },
@@ -680,7 +680,7 @@ function analyzeWithClaude_(key, records, lines) {
   var userPrompt = '아래는 「' + EVENT.name + '」 참여토론(주제 4개, 9테이블, 2라운드) 기록과 등록 때 참가자들이 무기명으로 적은 「오늘의 한줄」(' + lines.length + '건)입니다. 테이블의 기록은 1라운드·2라운드 참가자가 다르므로 두 라운드를 합쳐 그 테이블(주제)의 이야기로 정리합니다.\n\n' +
     blocks.join('\n\n') + '\n\n### 오늘의 한줄 (질문: ' + PROMPT + ')\n' + (lines.length ? lines.map(function (o) { return '- ' + o.text + (o.table ? ' [테이블 ' + o.table + ']' : ''); }).join('\n') : '(없음)') + '\n\n' +
     '다음을 JSON 으로만 답하십시오.\n' +
-    '1) tables: 9개 테이블 각각 { t(테이블 번호 1~9, 빠짐없이), one(그 테이블의 이야기를 대표하는 한 문장, 70자 이내), points(그 테이블 8명이 나눈 서로 다른 이야기를 빠짐없이 4~6개. 겹치는 이야기는 하나로 합치고, 기록이 짧으면 3개까지 줄여도 됨. 각 60자 이내 개조식으로 누가 어떤 경험·생각을 말했는지가 드러나게), wish(경기도·시군에 바라는 것, 80자 이내. 「바라는 것」 칸을 우선 쓰고 없으면 기록에서 찾되, 없으면 빈 문자열) }. 기록이 비어 있는 테이블은 one 에 "기록 없음" 이라고만 쓰고 points 는 빈 배열.\n' +
+    '1) tables: 9개 테이블 각각 { t(테이블 번호 1~9, 빠짐없이), one(그 테이블의 이야기를 대표하는 한 문장, 70자 이내), points(그 테이블 8명이 나눈 서로 다른 이야기를 빠짐없이 4~6개. 겹치는 이야기는 하나로 합치고, 기록이 짧으면 3개까지 줄여도 됨. 각 60자 이내 개조식으로 누가 어떤 경험·생각을 말했는지가 드러나게), wish(경기도·시군에 바라는 것, 80자 이내. 「바라는 것」 칸을 우선 쓰고 없으면 기록에서 찾되, 없으면 빈 문자열), kw(그 테이블 기록에서 자주 나온 핵심어 4~6개. 각 2~8자의 명사형으로 — 예: "돌봄 품앗이", "아침 루틴", "모임 소개 영상". 서술어·조사 없이, 기록이 비어 있으면 빈 배열) }. 기록이 비어 있는 테이블은 one 에 "기록 없음" 이라고만 쓰고 points 는 빈 배열.\n' +
     '2) topics: 주제 4개 각각 { id, sum(그 주제 테이블들의 논의를 관통하는 한 문장, 70자 내외), kw(핵심어 4~6개), sug(경기도에 대한 건의 2~3개, 테이블의 「바라는 것」을 근거로) }.\n' +
     '3) wishes: 9개 테이블의 「바라는 것」을 비슷한 것끼리 묶어 6~9개로 정리. text 는 45자 내외, tables 는 "테이블 1·3" 처럼 근거 테이블.\n' +
     '4) oneline: 오늘의 한줄 전체를 「같은 뜻·같은 맥락」끼리 묶습니다.\n' +
@@ -716,7 +716,10 @@ function anthropicFetch_(key, payload, withFallback) {
 
 /* ---- 규칙 기반 정리 (API 키가 없거나 실패했을 때) — Common.html 의 MOCK 과 같은 규칙 ---- */
 var STOP = ('오늘 여기서 여기 얻어 가고 싶은 하나 것 수 등 더 좀 그리고 그 저 우리 나 내 제 한 줄 있는 없는 대한 위한 위해 같은 정말 너무 조금 뭘 뭐 해 하는 있는지 건지 ' +
-  '경우 부분 필요 생각 의견 내용 사람들 정도 이런 저런 그런 통해 대해 관련 때문 다른 다음 어디 어떻게 무엇 조금이라도 직접 실제로 함께 같이 다시 계속 꾸준히 이제 아직 그냥 정말로 조금씩').split(/\s+/);
+  '경우 부분 필요 생각 의견 내용 사람들 정도 이런 저런 그런 통해 대해 관련 때문 다른 다음 어디 어떻게 무엇 조금이라도 직접 실제로 함께 같이 다시 계속 꾸준히 이제 아직 그냥 정말로 조금씩 ' +
+  '이야기 말 분 데 때 뒤 전 중 가장 바로 모두 모든 서로 이번 그동안 둘 셋 번째 처음 공통 중심 결론 제안 사례 이유 라운드 테이블 명 분들 분이 말이 것은 것이 것을 것도 했다 있었다 없었다 나왔다 됐다 된다 한다 이었다 였다 많았다 싶다 있다 없다 마무리 미리 먼저 자주 오래 거의 특히 이미 아마 또한 다만 역시 매우 아주 항상 자꾸 금방 우선 결국 과연 마치 더욱 새로 당장 지금 요즘 전혀 별로').split(/\s+/);   // 뒤쪽 줄: 기록문 상투어·부사 (Common.html 의 STOP 과 같아야 함, v3.10.3)
+var KEEP = ['경기도','품앗이','어린이','나들이','놀이터','민주주의','시군구','시군별','행복캠퍼스'];   // 조사처럼 끝나지만 그대로 둘 말 (경기도 → 경기 방지)
+var VERB_JA = /^(만들|하|열|가|보|쓰|내|나|오|만나|해보|모이|나누|찾|알아보|배우|시작하)자$/;   // 청유형(…하자)
 var JOSA = ['으로부터', '에서는', '에게서', '으로써', '이라도', '까지', '부터', '에서', '에게', '으로', '이나', '처럼', '보다', '마다', '조차', '마저', '은', '는', '이', '가', '을', '를', '의', '에', '도', '로', '과', '와', '랑', '만'];
 /* 서술어 어미(…싶습니다, …어요 등)를 떼어 낸다. 남은 말이 2자 미만이거나 연결어미(…고/…서/…며)로 끝나는 짧은 말은 버린다 */
 var ENDINGS = ['싶습니다', '싶어요', '겠습니다', '했습니다', '습니다', '입니다', '합니다', '했으면', '있으면', '으면', '이에요', '에요', '어요', '아요', '해요', '거든요', '네요', '지요', '고요', '하고', '하는', '했던', '하며', '해서', '어서', '아서', '는지', '은지', '을지', '니다'];
@@ -724,11 +727,24 @@ function tokens_(s) {
   var raw = String(s || '').replace(/[^가-힣A-Za-z0-9\s]+/g, ' ').split(/\s+/); var out = [];
   for (var i = 0; i < raw.length; i++) {
     var w = raw[i]; if (!w) continue;
-    for (var j = 0; j < JOSA.length; j++) if (w.length > JOSA[j].length + 1 && w.slice(-JOSA[j].length) === JOSA[j]) { w = w.slice(0, -JOSA[j].length); break; }
-    for (var k = 0; k < ENDINGS.length; k++) if (w.length > ENDINGS[k].length && w.slice(-ENDINGS[k].length) === ENDINGS[k]) { w = w.slice(0, -ENDINGS[k].length); break; }
-    if (w.length <= 3 && /[고서며]$/.test(w)) continue;
-    if (w.length >= 2 && STOP.indexOf(w) < 0) out.push(w);
+    if (KEEP.indexOf(w) < 0) {
+      for (var j = 0; j < JOSA.length; j++) if (w.length > JOSA[j].length + 1 && w.slice(-JOSA[j].length) === JOSA[j]) { w = w.slice(0, -JOSA[j].length); break; }
+      for (var k = 0; k < ENDINGS.length; k++) if (w.length > ENDINGS[k].length && w.slice(-ENDINGS[k].length) === ENDINGS[k]) { w = w.slice(0, -ENDINGS[k].length); break; }
+    }
+    if (w.length < 2 || STOP.indexOf(w) >= 0) continue;
+    if (/^것/.test(w) || /다$/.test(w)) continue;   // 「것…」·서술어(…했다·…이었다)
+    if ((w.length <= 3 && /[고서며]$/.test(w)) || (w.length >= 4 && /[고서며면]$/.test(w)) || (w.length === 3 && /면$/.test(w))) continue;   // 연결어미꼴(…하고·…해서·…하며·…하면)
+    if (/[한든려]$/.test(w) || (w.length === 2 && /드$/.test(w)) || VERB_JA.test(w)) continue;   // 관형·연결·청유형(시작한·만든·늘려·만드·만들자) (v3.10.3)
+    out.push(w);
   }
+  return out;
+}
+/* 테이블 핵심어(규칙): 두 번 이상 나온 말을 먼저, 3개가 안 되면 한 번 나온 말 중 명사꼴(…한·…든·…려·…자·…고 등 서술어꼴 제외)로 채운다 (v3.10.3) */
+function tableKw_(texts, n) {
+  var f = {}; texts.forEach(function (t) { tokens_(t).forEach(function (w) { f[w] = (f[w] || 0) + 1; }); });
+  var ws = Object.keys(f).sort(function (a, b) { return f[b] - f[a] || a.localeCompare(b); });
+  var out = ws.filter(function (w) { return f[w] >= 2; }).slice(0, n); var min = Math.min(n, 4);
+  if (out.length < min) ws.forEach(function (w) { if (out.length < min && f[w] < 2 && out.indexOf(w) < 0 && !/[한든려드자고서며면들]$/.test(w)) out.push(w); });
   return out;
 }
 function topWords_(texts, n) {
@@ -751,7 +767,7 @@ function recText_(records, t) {
 function tableRule_(records, t) {
   var x = recText_(records, t); var ss = sentences_(x.note); var seen = {};
   var rest = (ss.length > 1 ? ss.slice(1) : ss.slice(0, 1)).filter(function (p) { var k = p.replace(/\s+/g, ''); if (seen[k]) return false; seen[k] = true; return true; });
-  return { t: t, one: cut_(ss[0] || '', 70), points: rest.slice(0, 6).map(function (p) { return cut_(p, 90); }), wish: cut_(x.wish, 80) };   // 핵심은 한 문장(첫 문장) 다음 문장들로 — 첫 문장이 두 번 보이지 않게
+  return { t: t, one: cut_(ss[0] || '', 70), points: rest.slice(0, 6).map(function (p) { return cut_(p, 90); }), wish: cut_(x.wish, 80), kw: tableKw_([x.note, x.wish], 6) };   // 핵심은 한 문장(첫 문장) 다음 문장들로 — 첫 문장이 두 번 보이지 않게 · kw: 자주 나온 말 (v3.10.3)
 }
 /* Claude 결과의 tables 를 9건·번호순으로 맞추고, 빠진 테이블은 규칙으로 채운다 */
 function fixTables_(tables, records) {
@@ -760,7 +776,9 @@ function fixTables_(tables, records) {
   for (var t = 1; t <= TABLE_COUNT; t++) {
     var x = by[t];
     if (!x) { out.push(tableRule_(records, t)); continue; }
-    out.push({ t: t, one: str_(x.one, 120), points: (Array.isArray(x.points) ? x.points : []).slice(0, 6).map(function (p) { return str_(p, 120); }), wish: str_(x.wish, 160) });
+    var kw = (Array.isArray(x.kw) ? x.kw : []).map(function (k) { return str_(k, 16).trim(); }).filter(Boolean).slice(0, 6);
+    if (!kw.length) { var rt = recText_(records, t); kw = tableKw_([rt.note, rt.wish], 6); }   // Claude 가 안 주면 규칙으로 (v3.10.3)
+    out.push({ t: t, one: str_(x.one, 120), points: (Array.isArray(x.points) ? x.points : []).slice(0, 6).map(function (p) { return str_(p, 120); }), wish: str_(x.wish, 160), kw: kw });
   }
   return out;
 }

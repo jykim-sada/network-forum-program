@@ -166,6 +166,17 @@ function recLen(t, r) { return rec(t, r).note.length; }
 function recStatus(t, r) { var x = rec(t, r); if (x.done) return 'done'; return (x.note.trim() || x.wish.trim()) ? 'draft' : 'wait'; }
 function tableAnalysis(t) { var a = S.analysis; if (!a || !a.tables || !a.tables.length) return null; for (var i = 0; i < a.tables.length; i++) if (Number(a.tables[i].t) === Number(t)) return a.tables[i]; return null; }
 function topicAnalysis(id) { var a = S.analysis; if (!a || !a.topics) return null; for (var i = 0; i < a.topics.length; i++) if (Number(a.topics[i].id) === id) return a.topics[i]; return null; }
+/* 테이블 장표 오른쪽 「자주 나온 말」(v3.10.3): 분석의 kw(Claude 또는 규칙) → 없으면(옛 분석 결과) 주제 핵심어 중 이 테이블 기록에 나온 말 + 기록 빈도 상위, 최대 6개 */
+function tableKeywords(t) {
+  var a = tableAnalysis(t); var kw = (a && Array.isArray(a.kw)) ? a.kw.map(function (k) { return String(k || '').trim(); }).filter(Boolean) : [];
+  if (kw.length) return kw.slice(0, 6);
+  var text = [1, 2].map(function (r) { var x = rec(t, r); return x.note + ' ' + x.wish; }).join(' '); if (!text.trim()) return [];
+  var flat = text.replace(/\s+/g, ''); var out = [];
+  var tp = TOPICS.filter(function (p) { return (p.tables || []).indexOf(Number(t)) >= 0; })[0]; var ta = tp ? topicAnalysis(tp.id) : null;
+  ((ta && ta.kw) || []).forEach(function (k) { k = String(k || '').trim(); if (k && out.indexOf(k) < 0 && flat.indexOf(k.replace(/\s+/g, '')) >= 0) out.push(k); });
+  tableKw([text], 10).forEach(function (w) { if (out.length < 6 && !out.some(function (k) { var kf = k.replace(/\s+/g, ''); return kf.indexOf(w) >= 0 || w.indexOf(kf) >= 0; })) out.push(w); });
+  return out.slice(0, 6);
+}
 
 /* 트렌드 카드: 키워드가 있는 것만, 입력 순서대로 */
 function trendItems() { return (((program().trends || {}).items) || []).filter(function (x) { return x && String(x.k || '').trim(); }); }
@@ -247,16 +258,35 @@ function onelineSummary() {
 }
 
 /* ---- 오늘의 한줄 집계 (화면용 단순 규칙) ---- */
-var STOP = new Set('오늘 여기서 여기 얻어 가고 싶은 하나 것 수 등 더 좀 그리고 그 저 우리 나 내 제 한 줄 있는 없는 대한 위한 위해 같은 정말 너무 조금 뭘 뭐 해 하는 있는지 건지 경우 부분 필요 생각 의견 내용 사람들 정도 이런 저런 그런 통해 대해 관련 때문 다른 다음 어디 어떻게 무엇 조금이라도 직접 실제로 함께 같이 다시 계속 꾸준히 이제 아직 그냥 정말로 조금씩'.split(' '));
+var STOP = new Set('오늘 여기서 여기 얻어 가고 싶은 하나 것 수 등 더 좀 그리고 그 저 우리 나 내 제 한 줄 있는 없는 대한 위한 위해 같은 정말 너무 조금 뭘 뭐 해 하는 있는지 건지 경우 부분 필요 생각 의견 내용 사람들 정도 이런 저런 그런 통해 대해 관련 때문 다른 다음 어디 어떻게 무엇 조금이라도 직접 실제로 함께 같이 다시 계속 꾸준히 이제 아직 그냥 정말로 조금씩 이야기 말 분 데 때 뒤 전 중 가장 바로 모두 모든 서로 이번 그동안 둘 셋 번째 처음 공통 중심 결론 제안 사례 이유 라운드 테이블 명 분들 분이 말이 것은 것이 것을 것도 했다 있었다 없었다 나왔다 됐다 된다 한다 이었다 였다 많았다 싶다 있다 없다 마무리 미리 먼저 자주 오래 거의 특히 이미 아마 또한 다만 역시 매우 아주 항상 자꾸 금방 우선 결국 과연 마치 더욱 새로 당장 지금 요즘 전혀 별로'.split(' '));   // 뒤쪽: 기록문 상투어·부사 (Code.gs 의 STOP 과 같아야 함, v3.10.3)
+var KEEP = new Set(['경기도','품앗이','어린이','나들이','놀이터','민주주의','시군구','시군별','행복캠퍼스']);   // 조사처럼 끝나지만 그대로 둘 말 (경기도 → 경기 방지)
+var VERB_JA = /^(만들|하|열|가|보|쓰|내|나|오|만나|해보|모이|나누|찾|알아보|배우|시작하)자$/;   // 청유형(…하자)
 var JOSA = ['으로부터', '에서는', '에게서', '으로써', '이라도', '까지', '부터', '에서', '에게', '으로', '이나', '처럼', '보다', '마다', '조차', '마저', '은', '는', '이', '가', '을', '를', '의', '에', '도', '로', '과', '와', '랑', '만'];
 var ENDINGS = ['싶습니다', '싶어요', '겠습니다', '했습니다', '습니다', '입니다', '합니다', '했으면', '있으면', '으면', '이에요', '에요', '어요', '아요', '해요', '거든요', '네요', '지요', '고요', '하고', '하는', '했던', '하며', '해서', '어서', '아서', '는지', '은지', '을지', '니다'];
 /* 화면용 단순 단어 빈도. 문장형 글에는 한계가 있어 분석 실행 전에는 핵심어를 화면에 내지 않는다(규칙 기반 묶음에만 사용) */
 function tokens(text) {
   return String(text).replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter(Boolean).map(function (w) {
+    if (KEEP.has(w)) return w;
     for (var i = 0; i < JOSA.length; i++) { var j = JOSA[i]; if (w.length > j.length + 1 && w.endsWith(j)) { w = w.slice(0, -j.length); break; } }
     for (var k = 0; k < ENDINGS.length; k++) { var e = ENDINGS[k]; if (w.length > e.length && w.endsWith(e)) { w = w.slice(0, -e.length); break; } }
     return w;
-  }).filter(function (w) { return w.length >= 2 && !STOP.has(w) && !(w.length <= 3 && /[고서며]$/.test(w)); });
+  }).filter(function (w) {   // Code.gs tokens_ 와 같은 규칙 (v3.10.3)
+    if (w.length < 2 || STOP.has(w)) return false;
+    if (/^것/.test(w) || /다$/.test(w)) return false;   // 「것…」·서술어(…했다·…이었다)
+    if ((w.length <= 3 && /[고서며]$/.test(w)) || (w.length >= 4 && /[고서며면]$/.test(w)) || (w.length === 3 && /면$/.test(w))) return false;   // 연결어미꼴
+    if (/[한든려]$/.test(w) || (w.length === 2 && /드$/.test(w)) || VERB_JA.test(w)) return false;   // 관형·연결·청유형(시작한·만든·늘려·만드·만들자)
+    return true;
+  });
+}
+/* 자주 나온 말: 빈도 내림차순, 같으면 가나다 (Code.gs topWords_ 와 같음) */
+function topWords(texts, n) { var f = {}; texts.forEach(function (t) { tokens(t).forEach(function (w) { f[w] = (f[w] || 0) + 1; }); }); return Object.keys(f).sort(function (a, b) { return f[b] - f[a] || a.localeCompare(b); }).slice(0, n); }
+/* 테이블 핵심어(규칙, Code.gs tableKw_ 와 같음): 두 번 이상 나온 말 먼저, 3개가 안 되면 한 번 나온 말 중 명사꼴만 */
+function tableKw(texts, n) {
+  var f = {}; texts.forEach(function (t) { tokens(t).forEach(function (w) { f[w] = (f[w] || 0) + 1; }); });
+  var ws = Object.keys(f).sort(function (a, b) { return f[b] - f[a] || a.localeCompare(b); });
+  var out = ws.filter(function (w) { return f[w] >= 2; }).slice(0, n); var min = Math.min(n, 4);
+  if (out.length < min) ws.forEach(function (w) { if (out.length < min && f[w] < 2 && out.indexOf(w) < 0 && !/[한든려드자고서며면들]$/.test(w)) out.push(w); });
+  return out;
 }
 var CATS = [['사람·연결', ['연락처', '사람', '모임', '연결', '네트워크', '만남', '친구', '동료', '대표', '같이']], ['정보·방법', ['정보', '방법', '힌트', '노하우', '사례', '자료', '팁', '배움', '어디서']], ['정책·경기도', ['경기도', '정책', '지원', '제도', '예산', '도청', '시군']], ['마음·용기', ['용기', '위로', '공감', '힘', '확인', '마음', '응원', '자신감', '혼자']]];
 function summaryStats() {
@@ -295,7 +325,7 @@ var MOCK = (function () {
   function cut(s, n) { s = String(s || '').trim(); return s.length > n ? s.slice(0, n - 1) + '…' : s; }
   function recText(t) { var notes = [], wishes = []; [1, 2].forEach(function (r) { var x = rec(t, r); if (x.note.trim()) notes.push(x.note.trim()); if (x.wish.trim()) wishes.push(x.wish.trim()); }); return { note: notes.join('\n'), wish: wishes.join(' / ') }; }
   /* 규칙: one = 기록 첫 문장(≤70자), points = 그다음 문장 최대 6개(같은 문장은 한 번), wish = 바라는 것(≤80자) — Code.gs tableRule_ 와 같음 */
-  function tableRule(t) { var x = recText(t); var ss = sentences(x.note); var seen = {}; var rest = (ss.length > 1 ? ss.slice(1) : ss.slice(0, 1)).filter(function (p) { var k = p.replace(/\s+/g, ''); if (seen[k]) return false; seen[k] = true; return true; }); return { t: t, one: cut(ss[0] || '', 70), points: rest.slice(0, 6).map(function (p) { return cut(p, 90); }), wish: cut(x.wish, 80) }; }
+  function tableRule(t) { var x = recText(t); var ss = sentences(x.note); var seen = {}; var rest = (ss.length > 1 ? ss.slice(1) : ss.slice(0, 1)).filter(function (p) { var k = p.replace(/\s+/g, ''); if (seen[k]) return false; seen[k] = true; return true; }); return { t: t, one: cut(ss[0] || '', 70), points: rest.slice(0, 6).map(function (p) { return cut(p, 90); }), wish: cut(x.wish, 80), kw: tableKw([x.note, x.wish], 6) }; }
   function analyze(d) {   // S 를 잠시 MOCK 자료로 바꿔 공통 함수(rec·summaryStats)를 그대로 쓴다
     var saveS = S; S = d; var ana;
     try {
