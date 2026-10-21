@@ -42,6 +42,7 @@ var DEFAULT_PROGRAM = {
       { v: '73%', k: '돌봄 부담', s: '' }, { v: '61.8%', k: '고독사 위험', s: '' }, { v: '41%', k: '1인 가구 급증', s: '' }],
     foot: '복합적인 생애전환기 위기에 직면해 있습니다.' },
   live: { panels: ['status', 'roster', 'facts', 'trend'], sec: 20, pin: '' },   // 진행 현황(테이블 지도 겸함)이 첫 패널. 한줄 패널은 v3.3 삭제, 트렌드 카드는 v3.4 추가, 지도는 v3.8 에 현황과 합침
+  cloud: { style: 'a', frame: 'word' },   // 결과공유 마지막 「포럼의 키워드」: style a(기울임)·b(수평)·c(칩), frame none·area·word·both (v3.11)
   /* 트렌드 카드(중간 대기 화면): 팩트만 — 키워드 k · 설명 s · 한 줄 더 m(비우면 안 나옴). src 는 작은 출처 표기 */
   trends: { src: '트렌드 코리아 2027', collect: true, sec: 12, items: [
     { k: '바이브세션', s: '수출과 성장률은 역대급인데 장사와 살림은 팍팍하다. 지표와 체감의 간극이 2027년을 읽는 출발점.' },
@@ -166,6 +167,18 @@ function recLen(t, r) { return rec(t, r).note.length; }
 function recStatus(t, r) { var x = rec(t, r); if (x.done) return 'done'; return (x.note.trim() || x.wish.trim()) ? 'draft' : 'wait'; }
 function tableAnalysis(t) { var a = S.analysis; if (!a || !a.tables || !a.tables.length) return null; for (var i = 0; i < a.tables.length; i++) if (Number(a.tables[i].t) === Number(t)) return a.tables[i]; return null; }
 function topicAnalysis(id) { var a = S.analysis; if (!a || !a.topics) return null; for (var i = 0; i < a.topics.length; i++) if (Number(a.topics[i].id) === id) return a.topics[i]; return null; }
+/* 마지막 장표 「포럼의 키워드」(v3.11): 오늘의 한줄 묶음 이름(가장 크게)·자주 나온 말 + 주제 핵심어 + 테이블 핵심어. 같은 말은 한 번(비중은 큰 쪽). 색: 묶음은 묶음 색, 주제·테이블은 주제 색(어두운 바탕용 밝은 톤), 한줄 낱말은 흰색 */
+var CLOUD_TOPIC_COLOR = { 1: '#4FD8C8', 2: '#CBE84F', 3: '#FFB43F', 4: '#FF8A3D' };
+function cloudWords() {
+  var out = [], seen = {};
+  function add(text, w, color, kind) { var t = String(text || '').trim(); if (t.length < 2) return; var k = t.replace(/\s+/g, ''); if (seen[k]) { if (w > seen[k].w) seen[k].w = w; return; } var o = { t: t, w: w, c: color, k: kind }; seen[k] = o; out.push(o); }
+  var o = onelineSummary();
+  (o.groups || []).forEach(function (g, i) { add(g.name, i < 3 ? 5 : 4.4, g.color || '#FFFFFF', 'group'); });
+  (o.kw || []).slice(0, 8).forEach(function (k) { add(k.word, 2.2, '#FFFFFF', 'line'); });
+  TOPICS.forEach(function (tp) { var ta = topicAnalysis(tp.id); ((ta && ta.kw) || []).forEach(function (k, i) { add(k, i < 2 ? 3.4 : 2.7, CLOUD_TOPIC_COLOR[tp.id], 'topic'); }); });
+  TABLES.forEach(function (t) { var tp = topicOf(t); tableKeywords(t).forEach(function (k, i) { add(k, i === 0 ? 3.1 : i === 1 ? 2.5 : 1.9, CLOUD_TOPIC_COLOR[tp.id], 'table'); }); });
+  return out;
+}
 /* 테이블 장표 오른쪽 「자주 나온 말」(v3.10.3): 분석의 kw(Claude 또는 규칙) → 없으면(옛 분석 결과) 주제 핵심어 중 이 테이블 기록에 나온 말 + 기록 빈도 상위, 최대 6개 */
 function tableKeywords(t) {
   var a = tableAnalysis(t); var kw = (a && Array.isArray(a.kw)) ? a.kw.map(function (k) { return String(k || '').trim(); }).filter(Boolean) : [];
@@ -203,7 +216,7 @@ function deckFor(ph) {
     /* 결과공유: 오늘의 한줄 요약(전체 1장) → 묶음마다 1장(대표 글) → 테이블 9장 → 주제 종합 4장 → 건의 종합 → 마무리 (v2 와 같음) */
     a = [{ type: 'oneline' }];
     onelineSummary().groups.forEach(function (g, i) { a.push({ type: 'olgroup', i: i, name: g.name }); });
-    TABLES.forEach(function (t) { a.push({ type: 'table', t: t }); }); TOPICS.forEach(function (tp) { a.push({ type: 'topic', id: tp.id }); }); a.push({ type: 'wish' }); a.push({ type: 'end' });
+    TABLES.forEach(function (t) { a.push({ type: 'table', t: t }); }); a.push({ type: 'cloud' }); a.push({ type: 'end' });   // 주제 종합 4장·건의 종합은 v3.11 에서 삭제 — 사회자가 「포럼의 키워드」 한 장으로 전체를 종합
     return a;
   }
   if (ph === 'close') return [{ type: 'close', label: '마무리' }];
@@ -211,7 +224,7 @@ function deckFor(ph) {
   return [{ type: 'wall', label: '오늘의 한줄' }];   // reg (및 알 수 없는 단계)
 }
 function slides() { return deckFor(phase()); }   // 기존 콘솔 코드 호환
-function slideLabel(s) { if (!s) return ''; if (s.label) return s.label; return s.type === 'oneline' ? '오늘의 한줄 요약' : s.type === 'olgroup' ? '한줄 ' + (s.i + 1) + ' · ' + s.name : s.type === 'table' ? '테이블 ' + s.t : s.type === 'topic' ? '주제 ' + s.id + ' 종합' : s.type === 'wish' ? '건의 종합' : '마무리'; }
+function slideLabel(s) { if (!s) return ''; if (s.label) return s.label; return s.type === 'oneline' ? '오늘의 한줄 요약' : s.type === 'olgroup' ? '한줄 ' + (s.i + 1) + ' · ' + s.name : s.type === 'table' ? '테이블 ' + s.t : s.type === 'cloud' ? '포럼의 키워드' : s.type === 'topic' ? '주제 ' + s.id + ' 종합' : s.type === 'wish' ? '건의 종합' : '마무리'; }
 function curSlide() { var d = deckFor(phase()); var i = Math.max(0, Math.min(Number(st().slide) || 0, d.length - 1)); return d[i]; }
 
 function visibleLines() { return (S.lines || []).filter(function (o) { return !o.hidden; }); }

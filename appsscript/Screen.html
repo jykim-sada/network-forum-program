@@ -82,6 +82,19 @@ html,body{margin:0;height:100%;overflow:hidden;background:var(--gg-d);color:var(
 .s-timeline div.on{background:var(--hc-teal);color:var(--gg-d)}
 .s-timeline div b{display:block;font-size:clamp(22px,3.4vh,30px)}
 .empty{color:var(--mut-2);font-size:clamp(22px,3vh,30px);text-align:center;padding:40px}
+/* 「포럼의 키워드」 (v3.11): 제목 아래 낱말들이 불규칙하게 흩어져 화면을 채운다 */
+.cloud{flex:1;min-height:0;display:flex;flex-direction:column}
+.cl-title{text-align:center;font-size:clamp(40px,6.4vh,74px);font-weight:700;color:#fff;letter-spacing:-.02em;line-height:1.15}
+.cl-sub{text-align:center;color:var(--mut);font-size:clamp(18px,2.6vh,28px);margin-top:.35em}
+.cl-area{flex:1;min-height:0;position:relative;margin-top:clamp(8px,1.6vh,20px)}
+.cl-area .cw{position:absolute;white-space:nowrap;font-weight:700;line-height:1;padding:.06em .1em;text-shadow:0 3px 14px rgba(0,0,0,.28);animation:cwin .7s ease-out both;transform-origin:center}
+.cl-area .cw.line{font-weight:500;opacity:.9}
+.cloud.v-c .cw{padding:.22em .6em;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.28);text-shadow:none}
+.cloud.v-c .cw.group{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.5)}
+@keyframes cwin{from{opacity:0}to{opacity:1}}
+.s-body.cloud-slide{padding-top:clamp(8px,1.4vh,16px);padding-bottom:clamp(8px,1.4vh,16px)}
+.cloud.f-area .cl-area{border:2px solid rgba(255,255,255,.35);border-radius:28px;background:rgba(255,255,255,.05);box-shadow:inset 0 0 60px rgba(0,0,0,.12)}   /* 구름 전체 틀 */
+.cloud.f-word .cw{border:2px solid currentColor;border-radius:.32em;padding:.1em .38em;text-shadow:none}.cloud.f-word .cw.group{border-width:3px}   /* 낱말마다 제 색 테두리 */
 /* 간지(1부·2부·마무리·폐회) */
 .div{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:clamp(10px,2vh,24px)}
 .div .k{font-size:clamp(20px,3vh,36px);color:var(--teal-b);letter-spacing:.1em;font-weight:700}
@@ -291,7 +304,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:var(--gg-d);color:var(
 /* 움직임 줄이기: 페이드·롤링·채우기 모두 0 */
 @media (prefers-reduced-motion: reduce){
   .lv-panel,.goal i,.grp .bar i,.sc,.track div{transition:none}
-  .latest.flash,.alldone,.grid div.new,.sc.new,.trend{animation:none}
+  .latest.flash,.alldone,.grid div.new,.sc.new,.trend,.cl-area .cw{animation:none}
   .ticker{white-space:normal}.ticker .tk{animation:none;padding-left:clamp(12px,1.4vw,24px)}
 }
 </style>
@@ -716,16 +729,67 @@ function render() {
     head = chip('마무리') + ev(tm + ' · 2부 사회자 종합 정리');
     body = '<div class="div"><div class="k">마무리</div><div class="t">' + esc(c.title) + '</div><div class="m big">' + br(c.text) + '</div></div>';
     foot = '<span>결과 보고서: 테이블별 정리 · 주제별 종합 · 건의사항</span><span>' + nowHM() + '</span>';
+  } else if (cur.type === 'cloud') {   // 포럼의 키워드 (v3.11): 상단 칩 없이 제목만, 낱말 구름은 그린 뒤 layoutCloud() 가 배치
+    head = ''; cls = 'cloud-slide';
+    var cv = (function () { try { return (new URLSearchParams(location.search).get('cv') || (program().cloud || {}).style || 'a').toLowerCase(); } catch (e) { return 'a'; } })();
+    var cf = (function () { try { return (new URLSearchParams(location.search).get('cf') || (program().cloud || {}).frame || 'word').toLowerCase(); } catch (e) { return 'word'; } })();
+    body = '<div class="cloud v-' + (['a', 'b', 'c'].indexOf(cv) >= 0 ? cv : 'a') + (cf === 'area' || cf === 'both' ? ' f-area' : '') + (cf === 'word' || cf === 'both' ? ' f-word' : '') + '"><div class="cl-title">경기도 중장년 네트워크 포럼의 키워드</div><div class="cl-sub">오늘의 한줄 · 9개 테이블 토론에서 나온 말</div><div class="cl-area" id="clArea"></div></div>';
+    foot = '<span></span><span>' + nowHM() + '</span>';
   } else {   // end: 결과공유 마지막 장 · 폐회 — 맨 위 행사 제목 + 슬로건, 가운데 「고맙습니다」 (위쪽 칩·단계 글은 v3.9.6 에서 삭제)
     head = '';
     body = heroHTML() + '<div class="div"><div class="t">고맙습니다</div></div>';   // 아래 문구는 v3.9.7 에서 삭제
     foot = '<span></span><span>' + nowHM() + '</span>';
   }
-  if (ph === 'share' && cur.type !== 'end') foot = '<span>' + (idx + 1) + ' / ' + deck.length + '</span><span>퍼실리테이터 발표 · 겹치면 「같은 의견」으로 넘김</span>';   // 마지막 장은 발표 안내 없이
+  if (ph === 'share' && cur.type !== 'end' && cur.type !== 'cloud') foot = '<span>' + (idx + 1) + ' / ' + deck.length + '</span><span>퍼실리테이터 발표 · 겹치면 「같은 의견」으로 넘김</span>';   // 마지막 두 장은 발표 안내 없이
   if (!foot) foot = '<span>' + esc(row[1]) + ' ' + tm + '</span>' + pageNo;
   document.getElementById('screen').innerHTML = frame(head, body, foot, cls);
-  fitNames(); fitBoxes(); fitOneLine(); fitVideo(); animateBars();
+  fitNames(); fitBoxes(); fitOneLine(); fitVideo(); animateBars(); layoutCloud();
 }
+/* 「포럼의 키워드」 배치 (v3.11): 비중 큰 말부터 가운데에서 타원 나선을 따라 겹치지 않는 자리에 놓는다. 시드 고정이라 스크린·미리보기·스토리보드가 같은 그림.
+   보기 a: 일부 기울임 · b: 수평만, 촘촘히 · c: 알약 칩. 글자 크기는 낱말 수에 맞춰 전체 면적의 약 55% 를 채우도록 자동 조절 */
+function layoutCloud() {
+  var area = document.getElementById('clArea'); if (!area) return;
+  var words = cloudWords(); area.innerHTML = '';
+  if (!words.length) { area.innerHTML = '<div class="empty">아직 분석 전입니다 · 콘솔에서 「분석 실행」</div>'; return; }
+  var cloud = area.parentNode; var variant = /v-c/.test(cloud.className) ? 'c' : /v-b/.test(cloud.className) ? 'b' : 'a';
+  var first = cloudShownKey !== viewKey; cloudShownKey = viewKey;   // 처음 뜰 때만 낱말이 차례로 나타나고, 같은 장을 다시 그릴 때(폴링·미리보기)는 바로 보인다
+  var W = area.clientWidth, H = area.clientHeight; if (!W || !H) return; var inset = /f-area/.test(cloud.className) ? 26 : 0;   // 틀이 있으면 안쪽으로 조금 띄운다
+  var seed = words.length * 7919 + 17; var rnd = function () { seed |= 0; seed = seed + 0x6D2B79F5 | 0; var t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  words.sort(function (a, b) { return b.w - a.w || a.t.localeCompare(b.t); });
+  var maxW = words[0].w, minW = words[words.length - 1].w;
+  var els = words.map(function (w, i) {
+    var el = document.createElement('span'); el.className = 'cw ' + w.k; el.textContent = w.t; el.style.color = w.c; el.style.visibility = 'hidden';
+    var rot = (variant === 'a' && i > 0 && rnd() < 0.38) ? ((rnd() < 0.5 ? -1 : 1) * (5 + rnd() * 9)) : 0; el.dataset.rot = String(rot);
+    el.style.transform = rot ? 'rotate(' + rot + 'deg)' : ''; area.appendChild(el); return el;
+  });
+  /* 글자 크기: 비중에 따라 2.6~8vh 를 기본으로, 전체 면적이 화면의 55% 가 되게 한 번 보정 */
+  var base = H * 0.034, span = H * (variant === 'c' ? 0.07 : 0.082);
+  var sizeOf = function (w, k) { return (base + (w.w - minW) / (maxW - minW || 1) * span) * k; };
+  var scale = 1;
+  for (var pass = 0; pass < 2; pass++) {
+    var sum = 0;
+    words.forEach(function (w, i) { els[i].style.fontSize = sizeOf(w, scale) + 'px'; sum += els[i].offsetWidth * els[i].offsetHeight; });
+    var fill = sum / (W * H); var target = variant === 'b' ? 0.6 : 0.52; scale = Math.min(1.4, Math.max(0.55, scale * Math.sqrt(target / Math.max(fill, 0.05))));
+  }
+  words.forEach(function (w, i) { els[i].style.fontSize = sizeOf(w, scale) + 'px'; });
+  var placed = [], cx = W / 2, cy = H / 2, pad = variant === 'c' ? 10 : 6;
+  els.forEach(function (el, i) {
+    var bw = el.offsetWidth, bh = el.offsetHeight, rot = Number(el.dataset.rot) || 0, rad = rot * Math.PI / 180;
+    var rw = Math.abs(bw * Math.cos(rad)) + Math.abs(bh * Math.sin(rad)), rh = Math.abs(bw * Math.sin(rad)) + Math.abs(bh * Math.cos(rad));
+    var a0 = rnd() * Math.PI * 2, ok = false, x = cx, y = cy;
+    var rk = (H / 2) / Math.sqrt(3500);   // step 3500 에서 반지름이 화면 반높이(가로는 W/H 배)에 닿도록 — 나선이 화면 끝까지 간다
+    for (var step = 0; step < 9000; step++) {
+      var r = rk * Math.sqrt(step), ang = a0 + step * 0.13; x = cx + r * Math.cos(ang) * (W / H); y = cy + r * Math.sin(ang);
+      if (x - rw / 2 < inset || x + rw / 2 > W - inset || y - rh / 2 < inset || y + rh / 2 > H - inset) continue;
+      var hit = false; for (var j = 0; j < placed.length; j++) { var p = placed[j]; if (Math.abs(p.x - x) * 2 < p.w + rw + pad && Math.abs(p.y - y) * 2 < p.h + rh + pad) { hit = true; break; } }
+      if (!hit) { ok = true; break; }
+    }
+    if (!ok) { el.remove(); return; }   // 자리가 없으면(비중 낮은 말) 뺀다
+    placed.push({ x: x, y: y, w: rw, h: rh }); el.style.left = (x - bw / 2) + 'px'; el.style.top = (y - bh / 2) + 'px'; el.style.visibility = '';
+    if (first && !REDUCED) el.style.animationDelay = (Math.min(i, 60) * 35) + 'ms'; else el.style.animation = 'none';
+  });
+}
+var cloudShownKey = '';   // 「포럼의 키워드」를 마지막으로 그린 장 키 (처음 뜰 때만 나타나는 효과)
 /* 키: F 전체화면만. ←/→ 이동은 콘솔이 단일 제어 지점이므로 두지 않는다 */
 document.addEventListener('keydown', function (e) { if (e.key === 'v' || e.key === 'V') { if (e.shiftKey) { if (LOCAL_VIDEO) clearLocalVideo(); } else document.getElementById('vpick').click(); return; } if (e.key === 'f' || e.key === 'F') { if (document.fullscreenElement) document.exitFullscreen(); else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen(); } });
 setInterval(function () {   // 1초마다: 진행 화면은 타이머, 휴식·취합 화면은 트렌드 카드 교대

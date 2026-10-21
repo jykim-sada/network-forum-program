@@ -264,10 +264,11 @@ function videoStatusText() {
 }
 function liveOf() { var lv = program().live || {}; return { panels: (lv.panels || []).slice(), sec: Number(lv.sec) || 20, pin: lv.pin || '' }; }
 function readLive(v) { var panels = []; v.querySelectorAll('.lvPanel').forEach(function (c) { if (c.checked) panels.push(c.value); }); var sec = Math.max(5, Math.min(120, Number(v.querySelector('#lvSec').value) || 20)); var pe = v.querySelector('[name=lvPin]:checked'); return { panels: panels, sec: sec, pin: pe ? pe.value : '' }; }
+function readCloud(v) { var s = v.querySelector('#clStyle'), f = v.querySelector('#clFrame'); return { style: s ? s.value : 'a', frame: f ? f.value : 'word' }; }   // 「포럼의 키워드」 보기·테두리 (v3.11)
 function saveLive() {
   var v = document.getElementById('view-control'); var lv = readLive(v);
   if (!lv.panels.length && !lv.pin) { toast('순환할 패널을 하나 이상 고르거나 고정 패널을 정하세요', true); return; }
-  var p = copyJ(program()); p.live = lv;
+  var p = copyJ(program()); p.live = lv; p.cloud = readCloud(v);
   saveProgramTo(p, v.querySelector('#saveLive'), '저장됨 · 스크린에 2초 안에 반영', function () { LV = null; });
 }
 function renderControl() {
@@ -300,6 +301,7 @@ function renderControl() {
       '<div class="chk">' + LIVE_PANELS.map(function (k) { return '<label><input type="checkbox" class="lvPanel" value="' + k + '" ' + (lv.panels.indexOf(k) >= 0 ? 'checked' : '') + '> ' + LV_LABELS[k] + '</label>'; }).join('') + '</div>' +
       '<div class="row" style="margin-top:6px"><label style="font-size:13px">전환 간격 <input class="num" id="lvSec" type="number" inputmode="numeric" pattern="[0-9]*" min="5" max="120" value="' + lv.sec + '"> 초</label></div>' +
       '<div class="radios" style="margin-top:6px;font-size:13px">고정: <label><input type="radio" name="lvPin" value="" ' + (!lv.pin ? 'checked' : '') + '> 순환</label>' + LIVE_PANELS.map(function (k) { return '<label><input type="radio" name="lvPin" value="' + k + '" ' + (lv.pin === k ? 'checked' : '') + '> ' + LV_LABELS[k] + '</label>'; }).join('') + '</div>' +
+      '<div class="row" style="margin-top:12px;font-size:13px;align-items:center"><b>포럼의 키워드 장표</b><label>보기 <select id="clStyle">' + [['a', 'A · 일부 기울임'], ['b', 'B · 수평 촘촘'], ['c', 'C · 알약 칩']].map(function (o) { return '<option value="' + o[0] + '" ' + ((program().cloud || {}).style === o[0] ? 'selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></label><label>테두리 <select id="clFrame">' + [['none', '없음'], ['area', '구름 전체 틀'], ['word', '낱말마다'], ['both', '둘 다']].map(function (o) { return '<option value="' + o[0] + '" ' + ((program().cloud || {}).frame === o[0] ? 'selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></label><span style="color:var(--muted)">결과공유 마지막 종합 장 · 같이 저장</span></div>' +
       '<div class="row" style="margin-top:8px"><button class="btn sm" id="saveLive">라운드 화면 저장</button>' + (LV ? '<span class="pill warn">저장 안 됨</span>' : '') + '</div>';
   v.querySelector('#ctlAdmin').innerHTML = '<h3>관리<small>되돌릴 수 없는 작업</small></h3><div class="row"><button class="btn ghost sm" id="rsState">진행 상태만 초기화</button><button class="btn danger sm" id="rsLines">오늘의 한줄 전체 삭제</button><button class="btn danger sm" id="rsAll">전체 비우기 (기록·한줄·분석)</button><button class="btn ghost sm" id="fillDemo">리허설용 예시 데이터 채우기</button><button class="btn ghost sm" id="refreshAll" title="시트를 직접 고친 뒤 화면들이 시트를 다시 읽게 합니다">화면 새로 고침</button><span style="font-size:12px;color:var(--muted)">프로그램·참가자 명단은 남습니다' + (API.isLocal ? '' : ' · 시트 메뉴 「발표보드」에서도 할 수 있습니다') + '</span></div>';
   wireCue(v); fitPreview();
@@ -316,7 +318,7 @@ function renderControl() {
   if (q('sSame')) q('sSame').onclick = function () { setState({ toggleSame: cur.t }); };
   if (q('sHold')) q('sHold').onclick = function () { if (holdPending) return; holdPending = true; setTimeout(function () { holdPending = false; render(); }, 2500); setState({ hold: !s.hold }, s.hold ? '스크린이 다시 움직입니다' : '스크린을 지금 화면에서 멈췄습니다 · 장표를 넘기면 자동으로 풀립니다'); };   // 화면 멈춤 (v3.10) · 2.5초 안에 두 번 누르면 한 번만
   v.querySelectorAll('[data-s]').forEach(function (b) { b.onclick = function () { setState({ slide: +b.dataset.s }); }; });
-  v.querySelectorAll('.lvPanel, #lvSec, [name=lvPin]').forEach(function (el) { el.onchange = function () { LV = readLive(v); }; });
+  v.querySelectorAll('.lvPanel, #lvSec, [name=lvPin], #clStyle, #clFrame').forEach(function (el) { el.onchange = function () { LV = readLive(v); }; });
   q('lvSec').oninput = function () { LV = readLive(v); };
   q('saveLive').onclick = saveLive;
   q('refreshAll').onclick = function () { admin('adminRefresh', [], function () { toast('화면들이 시트를 다시 읽습니다 (몇 초 안에 반영)'); }); };   // v3.10.4

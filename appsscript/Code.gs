@@ -61,6 +61,7 @@ var DEFAULT_PROGRAM = {
       { v: '73%', k: '돌봄 부담', s: '' }, { v: '61.8%', k: '고독사 위험', s: '' }, { v: '41%', k: '1인 가구 급증', s: '' }],
     foot: '복합적인 생애전환기 위기에 직면해 있습니다.' },
   live: { panels: ['status', 'roster', 'facts', 'trend'], sec: 20, pin: '' },
+  cloud: { style: 'a', frame: 'word' },   // 결과공유 마지막 「포럼의 키워드」: style a(기울임)·b(수평)·c(칩), frame none·area·word·both (v3.11)
   trends: { src: '트렌드 코리아 2027', collect: true, sec: 12, items: [
     { k: '바이브세션', s: '수출과 성장률은 역대급인데 장사와 살림은 팍팍하다. 지표와 체감의 간극이 2027년을 읽는 출발점.' },
     { k: '권태 사회', s: '볼 것, 먹을 것, 할 것이 넘치는데 「재밌는 일 없나」. 자극이 많아서 생기는 권태.' },
@@ -111,6 +112,8 @@ function normalizeProgram_(p) {
   if (panels.length && !isObj_(p.trends) && panels.indexOf('trend') < 0) panels.push('trend');   // v3.4 이전 저장값이면 트렌드 패널을 한 번 켜 준다 (아는 패널이 하나도 없으면 아래에서 기본값)
   var sec = Number(lv.sec);
   o.live = { panels: panels.length ? panels : D.live.panels.slice(), sec: isInt_(sec, 5, 120) ? sec : D.live.sec, pin: LIVE_PANELS.indexOf(lv.pin === 'map' ? 'status' : lv.pin) >= 0 ? (lv.pin === 'map' ? 'status' : lv.pin) : '' };
+  var cl = isObj_(p.cloud) ? p.cloud : {};
+  o.cloud = { style: ['a', 'b', 'c'].indexOf(cl.style) >= 0 ? cl.style : D.cloud.style, frame: ['none', 'area', 'word', 'both'].indexOf(cl.frame) >= 0 ? cl.frame : D.cloud.frame };   // v3.11
   var c = isObj_(p.close) ? p.close : {};
   o.close = { title: str_(c.title, 80, D.close.title), text: str_(c.text, 500, D.close.text) };
   if (o.close.text === LEGACY_CLOSE_TEXT) o.close.text = '';
