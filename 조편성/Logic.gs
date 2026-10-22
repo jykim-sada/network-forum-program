@@ -566,10 +566,10 @@ function buildOutputs_(people, assign, cap) {
   });
 
   // 조편성 (운영진이 테이블 번호를 고치는 탭 — 다음 새로 고침 때 그대로 유지됨)
-  var roster = [['이름', '연락처', '소속', '희망 순서', '1라운드 테이블', '1라운드 주제', '2라운드 테이블', '2라운드 주제', '희망 반영', '구분키']];
+  var roster = [['이름', '연락처', '소속', '희망 순서', '1라운드 테이블', '1라운드 주제', '2라운드 테이블', '2라운드 주제', '희망 반영', '이메일', '구분키']];
   sorted.filter(function (p) { return assign[p.key]; }).forEach(function (p) {
     var a = assign[p.key], A = topicOfTable_(a.t1), B = topicOfTable_(a.t2);
-    roster.push([p.name, fmtPhone_(p.phone), p.org, prefStr(p), a.t1, '주제' + A.id + ' ' + A.name, a.t2, '주제' + B.id + ' ' + B.name, a.how, p.key]);
+    roster.push([p.name, fmtPhone_(p.phone), p.org, prefStr(p), a.t1, '주제' + A.id + ' ' + A.name, a.t2, '주제' + B.id + ' ' + B.name, a.how, p.email, p.key]);
   });
 
   // 테이블별 명단

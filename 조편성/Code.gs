@@ -235,14 +235,14 @@ function writeRoster_(ss, res) {
     sh.getRange(2, 6, n, 1).setFormulas(fx.map(function (r) { return [r[0]]; }));
     sh.getRange(2, 8, n, 1).setFormulas(fx.map(function (r) { return [r[1]]; }));
     var bg = rows.slice(1).map(function (r) {
-      return [null, null, null, null, topicFill_(r[5]), topicFill_(r[5]), topicFill_(r[7]), topicFill_(r[7]), /조정/.test(r[8]) ? '#FFF2CC' : null, null];
+      return [null, null, null, null, topicFill_(r[5]), topicFill_(r[5]), topicFill_(r[7]), topicFill_(r[7]), /조정/.test(r[8]) ? '#FFF2CC' : null, null, null];
     });
-    sh.getRange(2, 1, n, 10).setBackgrounds(bg);
+    sh.getRange(2, 1, n, 11).setBackgrounds(bg);
     sh.getRange(2, 5, n, 1).setHorizontalAlignment('center').setFontWeight('bold');
     sh.getRange(2, 7, n, 1).setHorizontalAlignment('center').setFontWeight('bold');
-    sh.getRange(2, 10, n, 1).setFontColor('#999999');
+    sh.getRange(2, 11, n, 1).setFontColor('#999999');   // 구분키
   }
-  [70, 110, 190, 190, 80, 140, 80, 140, 95, 120].forEach(function (w, i) { sh.setColumnWidth(i + 1, w); });
+  [70, 110, 190, 190, 80, 140, 80, 140, 95, 200, 120].forEach(function (w, i) { sh.setColumnWidth(i + 1, w); });
   sh.getRange(1, 5).setNote('여기 번호를 바꾸면 다음 새로 고침 때도 그대로 유지됩니다. (1~3 주제1 · 4~5 주제2 · 6~7 주제3 · 8~9 주제4)');
   sh.getRange(1, 7).setNote('여기 번호를 바꾸면 다음 새로 고침 때도 그대로 유지됩니다.');
 }
@@ -353,6 +353,7 @@ function writeGuide_(ss, res, cap, cfg, appSh, surSh, nApp, nResp) {
 // 이름·연락처 없이 숫자만 돌려준다. 결과 탭을 읽기만 하고 다시 계산하지 않는다.
 // 주소: <웹앱 주소>?k=STATUS_KEY  (키가 틀리면 아무것도 돌려주지 않음)
 //   &what=1                 방식별 미리 계산(시트 안 바꿈)
+//   &action=refresh         일반 새로 고침(기존 배정 유지)
 //   &action=reassign&mode=4 전체 다시 배정 실행(mode=4 4순위 회피 우선, 12 1·2순위 우선) — 설정 탭 값도 그 기준으로 바뀜
 var STATUS_KEY = 'ab19eeffe8c523beb6c97463';
 
@@ -361,6 +362,7 @@ function doGet(e) {
   if (!e || !e.parameter || e.parameter.k !== STATUS_KEY) out = { error: 'forbidden' };
   else { try {
     if (e.parameter.action === 'reassign') { var r = refresh_(true, e.parameter.mode === '4' ? '4' : '12'); out = { done: 'reassign', assigned: r.count.assigned, issues: r.issues.length, status: statusSummary_() }; }
+    else if (e.parameter.action === 'refresh') { var r2 = refresh_(false); out = { done: 'refresh', assigned: r2.count.assigned, status: statusSummary_() }; }
     else out = e.parameter.what ? whatIf_() : statusSummary_(); } catch (err) { out = { error: String(err && err.message || err) }; } }
   return ContentService.createTextOutput(JSON.stringify(out)).setMimeType(ContentService.MimeType.JSON);
 }
@@ -397,6 +399,8 @@ function statusSummary_() {
       var A = topicOfTable_(t1), B = topicOfTable_(t2); if (A && B && A.id === B.id) same++;
     });
     res.assigned = ro.length - 1;
+    res.rosterColumns = h;
+    var ei = h.indexOf('이메일'); if (ei >= 0) res.emailFilled = ro.slice(1).filter(function (r) { return /@/.test(r[ei]); }).length;
   }
   res.ok12 = ok12; res.has4 = has4; res.sameTopicTwice = same; res.how = how; res.tableLoad = load;
 

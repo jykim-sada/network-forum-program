@@ -1,13 +1,30 @@
 # 네트워크 포럼 운영 프로그램
 
-「경기도 중장년 네트워크 포럼」(2026. 10. 28. 수, 고양 한양문고) 현장에서 스크린 · 운영진 콘솔 · 기록자 · 참가자 화면을 하나로 묶어 돌리는 프로그램입니다. 서버는 Google Apps Script + Google Sheets, 정적 자료는 Vercel 에 올립니다.
+「경기도 중장년 네트워크 포럼」(2026. 10. 28. 수, 고양 한양문고) 현장에서 스크린 · 운영진 콘솔 · 기록자 · 참가자 화면을 하나로 묶어 돌리는 프로그램입니다. 화면은 Vercel 에서 열리고, 자료 저장 · AI 분석은 Google Apps Script + Google Sheets 가 맡습니다.
+
+## 바로 가기 (Vercel 웹앱)
+
+| 화면 | 주소 | 누가 |
+|---|---|---|
+| 안내 (입구 · 참가자 QR · 모든 링크) | https://gg-forum-screen.vercel.app | 운영진 |
+| 운영진 콘솔 (PIN) | https://gg-forum-screen.vercel.app/admin | 운영진 노트북 |
+| 스크린 | https://gg-forum-screen.vercel.app/screen | LED 노트북 (F 키 전체화면) |
+| 기록자 (N = 테이블 1~9) | https://gg-forum-screen.vercel.app/recorder?no=1 | 테이블 태블릿 9대 |
+| 참가자 · 오늘의 한줄 (N = 테이블) | https://gg-forum-screen.vercel.app/phone?t=1 | 참가자 휴대폰 (QR) |
+| 테이블 QR 인쇄 | https://gg-forum-screen.vercel.app/print | 행사 전 1회 |
+| 스크린 스토리보드 (42컷) | https://gg-forum-screen.vercel.app/storyboard | 검토용 |
+| 스토리보드 PDF | https://gg-forum-screen.vercel.app/storyboard.pdf | 검토용 |
+| 전체 시뮬레이션 (서버 없이 흉내) | https://gg-forum-screen.vercel.app/sim | 검토용 |
+
+- Apps Script 주소(`https://script.google.com/macros/s/<배포ID>/exec?page=admin` 등)로 열어도 같은 화면 · 같은 자료입니다. 배포 ID 는 `배포정보_20261006_v3.md` 에 있습니다.
+- 자료(한줄 · 기록 · 분석)는 구글 시트에 저장되고, 운영진 기능은 콘솔 PIN 으로 보호됩니다.
 
 ## 폴더
 
 | 폴더 · 파일 | 내용 |
 |---|---|
-| `appsscript/` | Apps Script 소스. `Code.gs`(서버) · `Common.html`(공통 JS · 로컬 MOCK) · `Screen` `Admin` `Recorder` `Phone` `Start` `Print`.html(화면) · `build_local_preview.ps1`(로컬 미리보기 빌드) |
-| `deploy_vercel/` | Vercel 에 올라가는 정적 파일. `storyboard.html` 스토리보드 · `sim/` 시뮬레이션 · `storyboard.pdf` · `app/`(콘솔·스크린·기록자·참가자·인쇄·안내 화면, `appsscript/build_vercel_app.ps1` 이 생성) · `vercel.json`(짧은 주소 → app 페이지) |
+| `appsscript/` | Apps Script 소스. `Code.gs`(서버 · JSON API) · `Common.html`(공통 JS · 로컬 MOCK) · `Screen` `Admin` `Recorder` `Phone` `Start` `Print`.html(화면) · `build_local_preview.ps1`(로컬 미리보기) · `build_vercel_app.ps1`(Vercel 페이지 빌드) |
+| `deploy_vercel/` | Vercel 에 올라가는 정적 파일. `app/`(콘솔·스크린·기록자·참가자·인쇄·안내 화면) · `storyboard.html` · `storyboard.pdf` · `sim/` · `vercel.json`(짧은 주소 → app 페이지) |
 | `조편성/` | 테이블 조편성 보조 도구(별도 Apps Script) |
 | `logo/` | 경기도 · 행복캠퍼스 로고 |
 | `설치_운영_가이드_20261006_v3.md` | 설치 · 당일 운영 · 문제 해결 안내 |
@@ -16,24 +33,19 @@
 | `스크린_스토리보드.html` `.pdf` | 스크린 화면 42컷 스토리보드 |
 | `네트워크_포럼_운영프로그램_시뮬레이션.html` | 서버 없이 브라우저에서 도는 전체 시뮬레이션 |
 
-## 주소
-
-- 실제 프로그램(Apps Script): 콘솔 `…/exec?page=admin`, 스크린 `?page=screen`, 기록자 `?page=recorder&no=N`, 참가자 `?page=phone&t=N`, 인쇄 `?page=print`
-- Vercel: https://gg-forum-screen.vercel.app (안내 페이지 = 웹앱 입구) · `/storyboard` (스토리보드) · `/sim` (시뮬레이션) · `/storyboard.pdf` · `/admin` `/screen` `/recorder?no=N` `/phone?t=N` `/print` `/app` 은 실제 화면 (v3.12부터 Vercel 에서 직접 열리고, 자료는 Apps Script JSON API 로 읽고 씀)
-
 ## 배포
 
-`배포.ps1` 한 번으로 Apps Script 와 Vercel 에 함께 올라가고 GitHub 에 커밋 · 푸시됩니다.
+`배포.ps1` 한 번으로 Apps Script → Vercel 페이지 빌드 → Vercel → GitHub 순서로 올라갑니다.
 
 ```powershell
 .\배포.ps1 -Message "바꾼 내용 한 줄"
 ```
 
-- Apps Script: `clasp push -f` → `clasp deploy -i <배포ID> -d "설명"` (배포 ID 는 `배포정보_20261006_v3.md`)
-- Vercel: `deploy_vercel` 안에서 `vercel.cmd deploy --prod --yes`
+- Apps Script: `clasp push -f` → `clasp deploy -i <배포ID> -d "설명"`
+- Vercel: `deploy_vercel` 안에서 `vercel.cmd deploy --prod --yes --archive=tgz`
 - 로컬 미리보기 · 시뮬레이션 재생성: `appsscript\build_local_preview.ps1` → 시뮬레이션은 세션 스크립트(build_onepage.js)로 다시 만듭니다
 
 ## 주의
 
-- 콘솔 PIN 은 스크립트 속성 `ADMIN_PIN` 으로 바꿀 수 있습니다(기본값은 코드에 있으니 저장소는 비공개로 둡니다).
-- AI 분석 키(`ANTHROPIC_API_KEY`)와 clasp 자격 증명은 저장소에 넣지 않습니다.
+- 콘솔 PIN 은 시트 메뉴 「운영진 PIN 설정」으로 바꿉니다. 저장소가 공개이므로 코드의 기본값은 쓰지 않습니다.
+- AI 분석 키(`ANTHROPIC_API_KEY`)와 clasp · Vercel 자격 증명은 저장소에 넣지 않습니다.
