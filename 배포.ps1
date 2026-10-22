@@ -45,10 +45,12 @@ if (-not $SkipGit) {
     if (Test-Path $gh) {
       $sha = (git rev-parse HEAD).Trim()
       $body = @{ ref = $sha; environment = "Production"; auto_merge = $false; required_contexts = @(); description = "배포.ps1: $Message" } | ConvertTo-Json -Compress
-      $dep = $body | & $gh api "repos/$repo/deployments" --input - --jq .id 2>$null
-      if ($dep) {
+      $tmp = [IO.Path]::GetTempFileName(); [IO.File]::WriteAllText($tmp, $body, (New-Object Text.UTF8Encoding $false))   # stdin 파이프는 PS 5.1 에서 한글이 깨짐 → UTF-8 파일로
+      $dep = & $gh api "repos/$repo/deployments" --input $tmp --jq .id 2>$null; Remove-Item $tmp -ErrorAction SilentlyContinue
+      if ($dep -match '^[0-9]+$') {   # gh 가 오류 본문을 돌려줘도 숫자 id 일 때만 진행
         $st = @{ state = "success"; environment = "Production"; environment_url = "https://gg-forum-screen.vercel.app"; auto_inactive = $true } | ConvertTo-Json -Compress
-        $st | & $gh api "repos/$repo/deployments/$dep/statuses" --input - --jq .state 2>$null | ForEach-Object { "Deployments 기록: $_ ($($sha.Substring(0,7)))" }
+        [IO.File]::WriteAllText($tmp, $st, (New-Object Text.UTF8Encoding $false))
+        & $gh api "repos/$repo/deployments/$dep/statuses" --input $tmp --jq .state 2>$null | ForEach-Object { "Deployments 기록: $_ ($($sha.Substring(0,7)))" }; Remove-Item $tmp -ErrorAction SilentlyContinue
       } else { Write-Host "Deployments 기록 실패(gh 로그인 확인) - 배포 자체는 끝났습니다" -ForegroundColor Yellow }
     }
   }

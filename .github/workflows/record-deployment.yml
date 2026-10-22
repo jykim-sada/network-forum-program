@@ -1,0 +1,50 @@
+# deploy_vercel 이 바뀐 커밋이 main 에 올라오면 Vercel 이 알아서 배포한다(Git 연동).
+# 이 작업은 그 결과(커밋 상태 「Vercel」)를 기다렸다가 저장소 페이지의 Deployments(Production) 에 운영 주소를 남긴다. 토큰·비밀값 불필요.
+# 배포.ps1 로 PC 에서 올린 커밋은 [skip ci] 가 붙어 이 작업이 돌지 않고, 배포.ps1 이 직접 기록한다.
+name: Record Vercel deployment
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'deploy_vercel/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: read
+  deployments: write
+
+concurrency:
+  group: record-production
+  cancel-in-progress: false
+
+jobs:
+  record:
+    name: Production (Vercel)
+    runs-on: ubuntu-latest
+    environment:
+      name: Production
+      url: https://gg-forum-screen.vercel.app
+    steps:
+      - name: Wait for the Vercel commit status
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          for i in $(seq 1 60); do
+            state="$(gh api "repos/$REPO/commits/$SHA/status" --jq '[.statuses[] | select(.context == "Vercel") | .state] | first // "none"')"
+            echo "try $i: $state"
+            case "$state" in
+              success)
+                echo "### Vercel 배포 확인: https://gg-forum-screen.vercel.app (커밋 ${SHA:0:7})" >> "$GITHUB_STEP_SUMMARY"
+                exit 0 ;;
+              failure|error)
+                echo "::error::Vercel 배포가 실패했습니다. Vercel 대시보드에서 커밋 ${SHA:0:7} 을 확인하세요."
+                exit 1 ;;
+            esac
+            sleep 10
+          done
+          echo "::error::10분 안에 Vercel 커밋 상태가 오지 않았습니다."
+          exit 1
