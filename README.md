@@ -51,6 +51,7 @@ Vercel 프로젝트 gg-forum-screen 이 이 저장소에 연결되어 있습니�
 
 - `배포.ps1` 이 PC 에서 이미 Vercel 에 올린 커밋에는 `[skip ci]` 가 붙어 Vercel 이 다시 배포하지 않고, 대신 배포.ps1 이 Deployments 기록을 남깁니다. `-SkipVercel` 로 올린 푸시는 Vercel 이 배포합니다.
 - 연결 관리: Vercel 대시보드 → 프로젝트 → Settings → Git. 연결 계정은 GitHub jykim-sada.
+- `.github/workflows/record-deployment.yml`: `deploy_vercel/` 가 바뀐 푸시 때 Vercel 의 커밋 상태(성공)를 기다렸다가 저장소 「Deployments」에 운영 주소를 남깁니다. 토큰·비밀값이 필요 없습니다. 저장소 Secrets 에 남아 있는 `VERCEL_ORG_ID` · `VERCEL_PROJECT_ID` 는 쓰지 않으므로 지워도 됩니다.
 
 ## 주의
 
