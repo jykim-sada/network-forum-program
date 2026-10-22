@@ -45,6 +45,13 @@
 - Vercel: `deploy_vercel` 안에서 `vercel.cmd deploy --prod --yes --archive=tgz`
 - 로컬 미리보기 · 시뮬레이션 재생성: `appsscript\build_local_preview.ps1` → 시뮬레이션은 세션 스크립트(build_onepage.js)로 다시 만듭니다
 
+### GitHub 연동 자동 배포 (v3.14)
+
+Vercel 프로젝트 gg-forum-screen 이 이 저장소에 연결되어 있습니다(Root Directory `deploy_vercel`, 운영 브랜치 main). `deploy_vercel/` 가 바뀐 커밋이 main 에 올라오면 Vercel 이 자동으로 운영 주소에 배포하고, 결과는 저장소 페이지 오른쪽 「Deployments」와 Vercel 대시보드에 남습니다.
+
+- `배포.ps1` 이 PC 에서 이미 Vercel 에 올린 커밋에는 `[skip ci]` 가 붙어 Vercel 이 다시 배포하지 않고, 대신 배포.ps1 이 Deployments 기록을 남깁니다. `-SkipVercel` 로 올린 푸시는 Vercel 이 배포합니다.
+- 연결 관리: Vercel 대시보드 → 프로젝트 → Settings → Git. 연결 계정은 GitHub jykim-sada.
+
 ## 주의
 
 - 콘솔 PIN 은 시트 메뉴 「운영진 PIN 설정」으로 바꿉니다. 저장소가 공개이므로 코드의 기본값은 쓰지 않습니다.
