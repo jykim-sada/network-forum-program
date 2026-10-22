@@ -200,6 +200,7 @@ function onOpen() {
     .addItem('리허설용 예시 데이터 채우기', 'fillDemoData')
     .addItem('리허설 입력 통로 열기 (자동 입력 테스트용)', 'openRehearsal')
     .addItem('리허설 입력 통로 닫기', 'closeRehearsal')
+    .addItem('참가자 명단 가져오기 (명단 시트에서)', 'importRosterMenu')
     .addItem('진행 상태 초기화 (입력 유지)', 'resetStateMenu')
     .addItem('화면 새로 고침 (시트를 직접 고친 뒤)', 'refreshMenu')
     .addItem('오늘의 한줄 전체 비우기', 'clearLinesMenu')
@@ -249,6 +250,35 @@ function checkState() {
 }
 function resetStateMenu() { saveState_(defaultState_()); bumpRev_(); SpreadsheetApp.getActive().toast('진행 상태를 처음(등록)으로 되돌렸습니다.', '발표보드', 5); }
 function refreshMenu() { bumpRev_(); SpreadsheetApp.getActive().toast('화면들이 시트를 다시 읽습니다 (몇 초 안에 반영).', '발표보드', 5); }   // 시트를 손으로 고친 뒤 (v3.10.4)
+/* 참가자 명단 가져오기 (v3.13): 명단 스프레드시트의 탭에서 「N번 테이블 …」 제목 줄 아래 행들(좌석번호 · 1라운드 이름 · 1라운드 소속 · 2라운드 이름 · 2라운드 소속)을 읽어 program.roster 에 넣는다.
+ * 시트 메뉴에서 소유자가 실행하므로 PIN 이 필요 없다. 주소를 비우면 기본 명단 시트(ROSTER_SHEET)를 쓴다. */
+var ROSTER_SHEET = { id: '1bnLOIeTxLpYNtnYvKA1K_fvonoHGuzxmYK48MMb--cU', gid: 456504189 };   // 2026-10-22 최종 명단
+function importRosterMenu() {
+  var ui = SpreadsheetApp.getUi();
+  var r = ui.prompt('참가자 명단 가져오기', '명단 시트 주소(비우면 기본 명단 시트). 탭 형식: 「N번 테이블 …」 제목 줄 아래에 좌석번호 · 1라운드 이름 · 1라운드 소속 · 2라운드 이름 · 2라운드 소속', ui.ButtonSet.OK_CANCEL);
+  if (r.getSelectedButton() !== ui.Button.OK) return;
+  var txt = String(r.getResponseText() || '').trim(); var id = ROSTER_SHEET.id, gid = ROSTER_SHEET.gid;
+  var m = /\/d\/([A-Za-z0-9_-]+)/.exec(txt); if (m) id = m[1]; else if (txt) id = txt;
+  var g = /[#&?]gid=(\d+)/.exec(txt); if (g) gid = Number(g[1]); else if (txt) gid = 0;
+  var res = importRoster_(id, gid);
+  ui.alert('참가자 명단 ' + res.count + '명을 넣었습니다 (테이블 ' + res.tables + '개: ' + res.per.join(', ') + ').' + (res.warn.length ? '\n확인할 줄: ' + res.warn.join(' / ') : '') + '\n스크린·콘솔에 몇 초 안에 반영됩니다.');
+}
+function importRoster_(id, gid) {
+  var ss = SpreadsheetApp.openById(id); var sh = null;
+  ss.getSheets().forEach(function (x) { if (gid && x.getSheetId() === gid) sh = x; }); if (!sh) sh = ss.getSheets()[0];
+  var v = sh.getDataRange().getValues(); var roster = {}, t = 0, count = 0, warn = [], per = [];
+  for (var i = 0; i < v.length; i++) {
+    var a = String(v[i][0] || '').trim(); var mt = /^(\d+)\s*번\s*테이블/.exec(a);
+    if (mt) { t = Number(mt[1]); if (!(t >= 1 && t <= TABLE_COUNT)) { warn.push(a.slice(0, 20)); t = 0; } else roster[t] = { 1: [], 2: [] }; continue; }
+    if (!t) continue;
+    var seat = Number(a); if (!(seat >= 1 && seat <= 30)) continue;   // 좌석 번호 줄만 (제목·빈 줄 제외)
+    var n1 = String(v[i][1] || '').trim(), n2 = String(v[i][3] || '').trim();
+    if (n1) { roster[t][1].push(n1.slice(0, 12)); count++; } if (n2) { roster[t][2].push(n2.slice(0, 12)); count++; }
+  }
+  for (var k = 1; k <= TABLE_COUNT; k++) if (roster[k]) per.push(k + '번 ' + roster[k][1].length + '·' + roster[k][2].length + '명');
+  var cur = readProgram_(); cur.roster = roster; writeProgram_(JSON.stringify(normalizeProgram_(cur))); bumpRev_();
+  return { count: count, tables: Object.keys(roster).length, per: per, warn: warn };
+}
 /* 시트를 손으로 고치면(기록·한줄·분석·설정) 스냅샷 캐시를 지워 화면이 다시 읽게 한다 — 단순 트리거: 사용자가 시트에서 직접 고칠 때만 실행되고, 스크립트가 쓴 값에는 실행되지 않는다 (v3.10.4) */
 function onEdit(e) {
   try { var name = e && e.range && e.range.getSheet().getName(); if ([SHEET_REC, SHEET_LINES, SHEET_ANA, SHEET_SET].indexOf(name) >= 0) bumpRev_(); } catch (err) {}

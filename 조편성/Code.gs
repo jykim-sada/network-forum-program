@@ -73,11 +73,17 @@ function timedRefresh() { refresh_(false); }
 
 /* ---------- 설정 ---------- */
 
+/** 설정 탭이 있는 스프레드시트. 메뉴·트리거는 열린 시트, 현황 주소(웹 앱)에서는 ID 로 연다 */
+function home_() {
+  var ss = null; try { ss = SpreadsheetApp.getActive(); } catch (e) {}
+  return ss || SpreadsheetApp.openById(SRC_DEFAULT['결과를 쓸 시트 ID']);
+}
+
 // 1·2라운드 모두 같은 테이블에 앉힐 사람들 (설정 탭 「동석 그룹 N」 칸에 동석 그룹 줄이 하나도 없을 때만 쓰는 처음 값)
 var DEFAULT_GROUPS = ['임종희, 김영준, 변성진, 박경민'];
 
 function ensureConfig_() {
-  var ss = SpreadsheetApp.getActive();
+  var ss = home_();
   if (!ss.getSheetByName(TAB.config)) ss.insertSheet(TAB.config, ss.getSheets().length);   // 원래 탭 뒤에
 }
 
@@ -85,7 +91,7 @@ function ensureConfig_() {
 function readConfig_() {
   var cfg = {}; Object.keys(SRC_DEFAULT).forEach(function (k) { cfg[k] = SRC_DEFAULT[k]; });
   var groups = [], hasGroupRows = false;
-  var sh = SpreadsheetApp.getActive().getSheetByName(TAB.config);
+  var sh = home_().getSheetByName(TAB.config);
   if (sh && sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, 2).getDisplayValues().forEach(function (r) {
     var k = String(r[0]).trim();
     if (/^동석 그룹/.test(k)) { hasGroupRows = true; if (String(r[1]).trim()) groups.push(String(r[1]).trim()); }
@@ -97,7 +103,7 @@ function readConfig_() {
 
 /** 설정 탭을 늘 같은 모양으로 다시 쓴다(값은 읽은 그대로). 동석 그룹은 쓰인 것 + 빈 줄 하나 */
 function writeConfig_(cfg, res) {
-  var sh = SpreadsheetApp.getActive().getSheetByName(TAB.config); if (!sh) return;
+  var sh = home_().getSheetByName(TAB.config); if (!sh) return;
   var rows = [['항목', '값']];
   Object.keys(SRC_DEFAULT).forEach(function (k) { rows.push([k, cfg[k]]); });
   var g0 = rows.length;
@@ -105,6 +111,7 @@ function writeConfig_(cfg, res) {
   rows.push(['', '']);
   rows.push(['결과 보는 곳', res ? res.targetUrl : '']);
   rows.push(['마지막 새로 고침', res ? Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd HH:mm') : '(실행 중이거나 오류)']);
+  rows.push(['마지막 전체 다시 배정', PropertiesService.getScriptProperties().getProperty('lastReassign') || '(아직 없음)']);
   rows.push(['', '']);
   rows.push(['안내', '시트 ID 는 주소의 /d/ 와 /edit 사이, gid 는 주소 끝 gid= 뒤 숫자. 테이블당 정원을 바꾸면 다음 새로 고침부터 적용.']);
   rows.push(['', '배정 우선 기준: 「1·2순위 우선」(원하는 두 주제 그대로 받는 사람 최대) 또는 「4순위 회피 우선」(4순위 받는 사람 최소). 바꾼 뒤 「전체 다시 배정」을 눌러야 적용.']);
@@ -113,7 +120,7 @@ function writeConfig_(cfg, res) {
   sh.getRange(1, 1, rows.length, 2).setNumberFormat('@').setValues(rows);
   styleHead_(sh, 2);
   sh.getRange(g0 + 1, 1, cfg._groups.length + 1, 2).setBackground('#FFF2CC');
-  sh.getRange(rows.length - 6, 1, 7, 1).setFontWeight('bold');
+  sh.getRange(rows.length - 7, 1, 8, 1).setFontWeight('bold');
   sh.getRange(rows.length - 2, 2, 3, 1).setWrap(true);
   sh.setColumnWidth(1, 160); sh.setColumnWidth(2, 520);
 }
@@ -146,12 +153,13 @@ function readPrev_(out) {
 
 /* ---------- 새로 고침 ---------- */
 
-function refresh_(reset) {
+function refresh_(reset, forceMode) {
   var lock = LockService.getScriptLock();
   if (!lock.tryLock(30000)) throw new Error('다른 새로 고침이 진행 중입니다. 잠시 뒤 다시 눌러 주세요.');
   try {
     ensureConfig_();
     var cfg = readConfig_(), cap = Math.max(1, Number(cfg['테이블당 정원']) || 8);
+    if (forceMode) cfg['배정 우선 기준'] = forceMode === '4' ? '4순위 회피 우선' : '1·2순위 우선';
     writeConfig_(cfg, null);
     var appSh = sourceSheet_(cfg['신청 명단 시트 ID'], cfg['신청 명단 탭 gid'], '신청 명단');
     var surSh = sourceSheet_(cfg['설문 응답 시트 ID'], cfg['설문 응답 탭 gid'], '설문 응답');
@@ -167,7 +175,14 @@ function refresh_(reset) {
     writePaste_(ss, res);
     writeGuide_(ss, res, cap, cfg, appSh, surSh, applicants.length, responses.length);
     res.targetName = ss.getName(); res.targetUrl = ss.getUrl();
-    writeConfig_(cfg, res);
+    if (reset) {   // 전체 다시 배정 결과를 남겨 둔다(확인필요 탭은 10분마다 다시 쓰여 지워지므로)
+      var opt = res.issues.filter(function (i) { return i.kind === '최적화'; })[0];
+      PropertiesService.getScriptProperties().setProperty('lastReassign', Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd HH:mm') +
+        ' · ' + (cfg['배정 우선 기준'] || '') + ' · ' + (opt ? opt.detail : '맞교환할 자리가 없었음(이미 최선)'));
+    }
+    var fresh = readConfig_();   // 새로 고침 도중 설정 탭을 고쳤으면 그 값을 살린다
+    if (forceMode) fresh['배정 우선 기준'] = cfg['배정 우선 기준'];
+    writeConfig_(fresh, res);
     return res;
   } finally { lock.releaseLock(); }
 }
@@ -332,4 +347,96 @@ function writeGuide_(ss, res, cap, cfg, appSh, surSh, nApp, nResp) {
   for (var k = 0; k < 5; k++) sh.getRange(r0 + k, 2, 1, 3).merge().setWrap(true);
   sh.getRange(r0, 1, 5, 1).setFontWeight('bold').setVerticalAlignment('top');
   [190, 260, 170, 170].forEach(function (w, i) { sh.setColumnWidth(i + 1, w); });
+}
+
+/* ---------- 현황 확인용 주소 (웹 앱) ---------- */
+// 이름·연락처 없이 숫자만 돌려준다. 결과 탭을 읽기만 하고 다시 계산하지 않는다.
+// 주소: <웹앱 주소>?k=STATUS_KEY  (키가 틀리면 아무것도 돌려주지 않음)
+//   &what=1                 방식별 미리 계산(시트 안 바꿈)
+//   &action=reassign&mode=4 전체 다시 배정 실행(mode=4 4순위 회피 우선, 12 1·2순위 우선) — 설정 탭 값도 그 기준으로 바뀜
+var STATUS_KEY = 'ab19eeffe8c523beb6c97463';
+
+function doGet(e) {
+  var out;
+  if (!e || !e.parameter || e.parameter.k !== STATUS_KEY) out = { error: 'forbidden' };
+  else { try {
+    if (e.parameter.action === 'reassign') { var r = refresh_(true, e.parameter.mode === '4' ? '4' : '12'); out = { done: 'reassign', assigned: r.count.assigned, issues: r.issues.length, status: statusSummary_() }; }
+    else out = e.parameter.what ? whatIf_() : statusSummary_(); } catch (err) { out = { error: String(err && err.message || err) }; } }
+  return ContentService.createTextOutput(JSON.stringify(out)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function statusSummary_() {
+  var ss = SpreadsheetApp.openById(SRC_DEFAULT['결과를 쓸 시트 ID']);
+  var vals = function (name) { var sh = ss.getSheetByName(name); return sh && sh.getLastRow() > 0 ? sh.getDataRange().getDisplayValues() : []; };
+  var res = { at: Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd HH:mm:ss') };
+
+  // 설정: 마지막 새로 고침·우선 기준·동석 그룹 수
+  vals(TAB.config).forEach(function (r) {
+    if (r[0] === '마지막 새로 고침') res.lastRefresh = r[1];
+    if (r[0] === '배정 우선 기준') res.priority = r[1];
+    if (/^동석 그룹/.test(r[0]) && r[1]) res.groups = (res.groups || 0) + 1;
+  });
+
+  // 제출현황: 상태별 인원
+  var m = vals(TAB.merged), st = {};
+  if (m.length) { var si = m[0].indexOf('상태'); m.slice(1).forEach(function (r) { st[r[si]] = (st[r[si]] || 0) + 1; }); }
+  res.status = st;
+
+  // 조편성: 희망 반영 분포, 1·2순위 그대로, 4순위 포함, 테이블별 인원, 같은 주제 두 번
+  var ro = vals(TAB.roster), how = {}, ok12 = 0, has4 = 0, same = 0, load = {};
+  for (var t = 1; t <= 9; t++) load[t] = [0, 0];
+  if (ro.length) {
+    var h = ro[0], a = h.indexOf('1라운드 테이블'), b = h.indexOf('2라운드 테이블'), w = h.indexOf('희망 반영');
+    ro.slice(1).forEach(function (r) {
+      var lab = r[w]; how[lab] = (how[lab] || 0) + 1;
+      var mm = lab.match(/(\d|\?)\+(\d|\?)순위/);
+      if (mm && !/조정/.test(lab)) ok12++;
+      if (mm && (mm[1] === '4' || mm[2] === '4')) has4++;
+      var t1 = Number(r[a]), t2 = Number(r[b]);
+      if (load[t1]) load[t1][0]++; if (load[t2]) load[t2][1]++;
+      var A = topicOfTable_(t1), B = topicOfTable_(t2); if (A && B && A.id === B.id) same++;
+    });
+    res.assigned = ro.length - 1;
+  }
+  res.ok12 = ok12; res.has4 = has4; res.sameTopicTwice = same; res.how = how; res.tableLoad = load;
+
+  // 확인필요: 구분별 건수 + 이름 없는 요약 줄(최적화·동석 그룹·정원 초과)만 내용 포함
+  var is = vals(TAB.issues), kinds = {}, notes = [];
+  is.slice(1).forEach(function (r) {
+    if (!r[0]) return;
+    kinds[r[0]] = (kinds[r[0]] || 0) + 1;
+    if (r[0] === '최적화' || r[0] === '동석 그룹' || r[0] === '정원 초과') notes.push(r[0] + ': ' + r[3]);
+  });
+  res.issues = kinds; res.notes = notes;
+  res.lastReassign = PropertiesService.getScriptProperties().getProperty('lastReassign') || '';
+  return res;
+}
+
+/** 지금 데이터로 방식별 결과를 미리 계산(시트는 바꾸지 않음). 숫자만 돌려준다 */
+function whatIf_() {
+  var ss = SpreadsheetApp.openById(SRC_DEFAULT['결과를 쓸 시트 ID']);
+  var cfg = {}; Object.keys(SRC_DEFAULT).forEach(function (k) { cfg[k] = SRC_DEFAULT[k]; });
+  var groups = [], cs = ss.getSheetByName(TAB.config);
+  if (cs && cs.getLastRow() > 1) cs.getRange(2, 1, cs.getLastRow() - 1, 2).getDisplayValues().forEach(function (r) {
+    if (/^동석 그룹/.test(r[0])) { if (r[1]) groups.push(r[1]); } else if (r[0] && r[1] && cfg.hasOwnProperty(r[0])) cfg[r[0]] = r[1];
+  });
+  var cap = Math.max(1, Number(cfg['테이블당 정원']) || 8);
+  var app = parseApplicants_(sourceSheet_(cfg['신청 명단 시트 ID'], cfg['신청 명단 탭 gid'], '신청 명단').getDataRange().getValues());
+  var sur = parseResponses_(sourceSheet_(cfg['설문 응답 시트 ID'], cfg['설문 응답 탭 gid'], '설문 응답').getDataRange().getValues());
+  function measure(r) {
+    var P = {}; r.people.forEach(function (p) { P[p.key] = p; });
+    var o = { assigned: 0, ok12: 0, has4: 0, rankSum: 0, noSeat: r.issues.filter(function (i) { return i.kind === '자리 없음'; }).length };
+    Object.keys(r.assign).forEach(function (k) {
+      var a = r.assign[k], x = seatInfo_(P[k], topicOfTable_(a.t1).id, topicOfTable_(a.t2).id);
+      o.assigned++; if (x.ok12) o.ok12++; if (x.has4) o.has4++; o.rankSum += x.sum;
+    });
+    return o;
+  }
+  return {
+    at: Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd HH:mm:ss'),
+    current: measure(runAll_(app, sur, readPrev_(ss), cap, groups, false)),
+    firstCome: measure(runAll_(app, sur, {}, cap, groups, false)),
+    opt12: measure(runAll_(app, sur, {}, cap, groups, '12')),
+    opt4: measure(runAll_(app, sur, {}, cap, groups, '4'))
+  };
 }
