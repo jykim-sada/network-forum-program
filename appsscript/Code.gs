@@ -354,12 +354,12 @@ function confRow_(cf, key) {
 /* ============================================================
  *  진행 상태 (스크립트 속성) · 개정 번호 · 캐시
  * ========================================================== */
-function defaultState_() { return { phase: 'reg', round: 0, roundStart: 0, slide: 0, same: {}, closed: false, analyzed: false, analyzedAt: 0, forceWall: false, hold: false, expected: 0, updatedAt: 0 }; }   // hold: 스크린 화면 멈춤 (v3.10)
+function defaultState_() { return { phase: 'reg', round: 0, roundStart: 0, slide: 0, same: {}, closed: false, analyzed: false, analyzedAt: 0, forceWall: false, hold: false, holdAt: 0, holdTotal: 0, slideAt: 0, expected: 0, updatedAt: 0 }; }   // hold: 스크린 화면 멈춤 (v3.10) · holdAt/holdTotal: 멈춘 서버 시각 · 이번 단계에서 멈춰 있던 시간 누계 → 두 홀 스크린이 같은 시계로 순환 (v3.16)
 function getState_() {
   var s = PropertiesService.getScriptProperties().getProperty('STATE');
   var d = defaultState_();
   if (!s) return d;
-  try { var o = JSON.parse(s); for (var k in o) d[k] = o[k]; return d; } catch (e) { return d; }
+  try { var o = JSON.parse(s); for (var k in o) d[k] = o[k]; if (d.hold && !Number(d.holdAt)) d.holdAt = Number(d.updatedAt) || 0; return d; } catch (e) { return d; }   // v3.16 이전에 저장된 멈춤 상태: 마지막 저장 시각을 멈춘 시각으로
 }
 function saveState_(st) { st.updatedAt = Date.now(); PropertiesService.getScriptProperties().setProperty('STATE', JSON.stringify(st)); return bumpRev_({ state: st }); }   // 상태만 바뀜 → 스냅샷 캐시의 state 칸만 교체 (v3.9)
 function getRev_() { return Number(PropertiesService.getScriptProperties().getProperty('REV') || 0); }
@@ -626,13 +626,13 @@ function adminSetState(pin, patch) {
     if (PHASES.indexOf(patch.phase) < 0) return { ok: false, error: '단계 값 오류' };
     var changed = st.phase !== patch.phase;
     st.phase = patch.phase;
-    if (changed) { st.slide = 0; st.hold = false; }   // 장표 번호는 단계 안에서 0부터 · 화면 멈춤도 풀린다
+    if (changed) { st.slide = 0; st.hold = false; st.holdAt = 0; st.holdTotal = 0; st.slideAt = Date.now(); }   // slideAt: 이 장표가 뜬 서버 시각 = 라운드 화면 순환의 시작점 (v3.16)   // 장표 번호는 단계 안에서 0부터 · 화면 멈춤도 풀리고 멈춤 누계도 0 (v3.16)
     if (patch.phase === 'r1' || patch.phase === 'r2') { var rn = patch.phase === 'r1' ? 1 : 2; if (changed || patch.restartRound || st.round !== rn) { st.round = rn; st.roundStart = Date.now(); } }
     if (patch.phase === 'collect') st.closed = true;
     if (patch.phase === 'reg' || patch.phase === 'part1' || patch.phase === 'p2') { st.round = 0; st.roundStart = 0; }
   }
-  if (patch.restartRound && (st.phase === 'r1' || st.phase === 'r2')) st.roundStart = Date.now();
-  if (patch.slide !== undefined) { var sl = Number(patch.slide); if (!isInt_(sl, 0, 99)) return { ok: false, error: '장표 번호 오류' }; if (sl !== Number(st.slide)) st.hold = false; st.slide = sl; }   // 장표가 바뀌면 화면 멈춤은 풀린다
+  if (patch.restartRound && (st.phase === 'r1' || st.phase === 'r2')) { st.roundStart = Date.now(); st.slideAt = st.roundStart; st.holdTotal = 0; if (st.hold) st.holdAt = st.roundStart; }
+  if (patch.slide !== undefined) { var sl = Number(patch.slide); if (!isInt_(sl, 0, 99)) return { ok: false, error: '장표 번호 오류' }; if (sl !== Number(st.slide)) { setHold_(st, false); st.holdTotal = 0; st.slideAt = Date.now(); } st.slide = sl; }   // 장표가 바뀌면 멈춤이 풀리고 순환은 새 장표가 뜬 시각부터 (v3.16)   // 장표가 바뀌면 화면 멈춤은 풀린다
   if (patch.same !== undefined) {
     var sm = {};
     if (isObj_(patch.same)) Object.keys(patch.same).slice(0, 40).forEach(function (k) { sm[str_(k, 20)] = !!patch.same[k]; });
@@ -643,10 +643,18 @@ function adminSetState(pin, patch) {
   if (patch.forceWall !== undefined) st.forceWall = !!patch.forceWall;
   if (patch.video !== undefined) { var vc = isObj_(patch.video) ? String(patch.video.cmd || '') : String(patch.video || ''); if (['play', 'pause', 'restart'].indexOf(vc) < 0) return { ok: false, error: '영상 명령 오류 (play·pause·restart)' }; st.videoCmd = { cmd: vc, at: Date.now() }; }   // 스크린 오프닝 영상 제어
   if (patch.expected !== undefined) { var ex = Number(patch.expected); if (!isInt_(ex, 0, 999)) return { ok: false, error: '참석자 수는 0~999 사이' }; st.expected = ex; }   // 당일 참석자 수 (오늘의 한줄 목표)
-  if (patch.hold !== undefined) st.hold = !!patch.hold;   // 스크린 화면 멈춤: 라운드 패널 순환·휴식 화면 교대를 지금 보이는 것에서 정지(내용 갱신은 계속). 장표·단계가 바뀌면 자동으로 풀린다 (v3.10)
+  if (patch.hold !== undefined) setHold_(st, !!patch.hold);   // 스크린 화면 멈춤: 라운드 패널 순환·휴식 화면 교대를 지금 보이는 것에서 정지(내용 갱신은 계속). 장표·단계가 바뀌면 자동으로 풀린다 (v3.10)
   if (patch.op !== undefined) st.op = str_(patch.op, 24);   // 콘솔이 붙인 변경 꼬리표 — 스크린·콘솔이 미리 그린 상태와 서버 상태를 맞출 때 씀 (v3.10)
   var rev = saveState_(st);   // 속성(REV)을 다시 읽지 않는다
   return { ok: true, state: st, rev: rev };
+}
+/* 화면 멈춤 켜기·끄기 + 서버 시각 기록 (v3.16): 켤 때 holdAt = 지금, 끌 때 멈춰 있던 시간을 holdTotal 에 더한다.
+   스크린은 (지금 또는 holdAt) - holdTotal - roundStart 로 순환 위치를 계산 → 두 홀의 노트북이 같은 패널에서 멈추고 이어 간다 */
+function setHold_(st, on) {
+  var now = Date.now();
+  if (on && !st.hold) st.holdAt = now;
+  else if (!on && st.hold) { st.holdTotal = (Number(st.holdTotal) || 0) + (Number(st.holdAt) ? Math.max(0, now - Number(st.holdAt)) : 0); st.holdAt = 0; }
+  st.hold = !!on;
 }
 /* 1부 프로그램·명단·화면 문구 저장 (콘솔 「프로그램」「참가자 명단」 탭). 정규화해서 설정 시트 program 행에 JSON 으로 */
 function adminSetProgram(pin, program) {

@@ -558,8 +558,17 @@ function trendSlide(T, pi, src, compact) {
   return '<div class="trend' + (compact ? ' compact' : '') + '"><div class="tk"><b>' + esc(src || '트렌드 코리아 2027') + '</b></div><div class="tgrid' + (page.length === 1 ? ' one' : '') + '">' + page.map(function (it, j) { return trendCardHTML(it, pi * 2 + j + 1); }).join('') + '</div></div>';
 }
 /* 휴식·취합 화면 아래쪽: 0 = 수치 표, 1~n = 카드. 시각으로 정하므로 어느 화면이든 같은 칸을 본다 */
-var collectPauseAt = 0, collectOffset = 0;   // 콘솔 「화면 멈춤」: 멈춘 동안 흐른 시간은 교대 계산에서 뺀다 → 풀리면 그 장면부터 이어 간다 (v3.10)
-function collectClock() { var t = nowServer(); if (st().hold) { if (!collectPauseAt) collectPauseAt = t; return collectPauseAt - collectOffset; } if (collectPauseAt) { collectOffset += t - collectPauseAt; collectPauseAt = 0; } return t - collectOffset; }
+/* 두 홀 동기 시계 (v3.16): 서버 시각에서 화면 멈춤으로 멈춰 있던 시간(서버 기록 holdTotal)을 뺀 값. 멈춘 동안은 서버가 기록한 멈춘 시각(holdAt)에 고정.
+   노트북마다 따로 세지 않으므로 한강홀 · 데미안홀 스크린이 같은 패널 · 같은 장면을 같은 순간에 보여 준다 */
+function heldNow() { var s = st(); if (!s.hold) return nowServer(); return Number(s.holdAt) || Number(s.updatedAt) || nowServer(); }   // holdAt 이 없던 옛 상태도 두 노트북이 같은 값(updatedAt)
+var syncLast = null;   // 같은 서버 기준값에서 시계가 뒤로 가지 않게(서버 시각 추정이 조금 줄어도 패널이 앞 칸으로 되돌아가지 않음)
+function syncClock() {
+  var s = st(); var v = heldNow() - (Number(s.holdTotal) || 0);
+  var k = [s.phase, s.slide, s.hold ? 1 : 0, Number(s.holdAt) || 0, Number(s.holdTotal) || 0, Number(s.slideAt) || 0, Number(s.roundStart) || 0].join('|');
+  if (syncLast && syncLast.k === k && v < syncLast.v) return syncLast.v;
+  syncLast = { k: k, v: v }; return v;
+}
+function collectClock() { return syncClock(); }
 function collectSlot(n, sec) { sec = Math.max(5, Number(sec) || 12); return Math.floor(collectClock() / (sec * 1000)) % (n + 1); }
 var collectSlotShown = -1;
 function collectLower(P) {
@@ -570,12 +579,12 @@ function collectLower(P) {
   return slot === 0 ? factsHtml : trendSlide(T, slot - 1, tr.src, true);
 }
 var liveTimer = null, livePanel = '', livePage = 0, liveSig = '', liveSwap = 0, livePending = false;
-/* 순환 위치: 패널 목록의 몇 번째(i) · 트렌드 몇 번째 장면(page) · 그 항목을 띄운 시각(at). 트렌드는 장면(1~2, 3~4, 5~6)을 모두 보여 준 뒤 다음 패널로 (v3.8) */
-var rot = { i: 0, page: 0, at: 0 };
-/* 작성 완료가 새로 생기면 순환·고정과 상관없이 진행 현황 패널을 바로 보여 주고(HOLD 동안) 그 칸을 강조한다. 끝나면 끼어들기 전 위치에서 이어 간다 */
-var liveDoneSet = null, liveHoldUntil = 0, liveHoldFrom = null, liveNew = {};   // liveDoneSet: 지금까지 본 완료 테이블(null = 아직 안 봄) · liveHoldFrom: 끼어들기 직전 순환 위치 · liveNew[t] = 강조 시작 시각
-var pausedAt = 0;   // 콘솔 「화면 멈춤」이 시작된 시각. 풀리면 멈춰 있던 시간만큼 순환·끼어들기 기준 시각을 뒤로 밀어 멈췄던 자리에서 이어 간다 (v3.10)
-function stopLive() { if (liveTimer) clearInterval(liveTimer); liveTimer = null; livePanel = ''; livePage = 0; liveSig = ''; livePending = false; liveSwap++; liveDoneSet = null; liveHoldUntil = 0; liveHoldFrom = null; liveNew = {}; pausedAt = 0; rot = { i: 0, page: 0, at: 0 }; }
+/* 순환 위치는 v3.16 부터 서버 시계로 계산한다(patchLive 의 slots · step). 트렌드는 장면(1~2, 3~4, 5~6)을 모두 보여 준 뒤 다음 패널로 (v3.8) */
+/* 작성 완료가 새로 생기면 순환·고정과 상관없이 진행 현황 패널을 바로 보여 주고(HOLD 동안) 그 칸을 강조한다. 끝나면 시계가 가리키는 칸으로 돌아간다 */
+var liveDoneSet = null, liveHoldUntil = 0, liveNew = {};   // liveDoneSet: 지금까지 본 완료 테이블(null = 아직 안 봄) · liveNew[t] = 강조 시작 시각
+var pausedAt = 0;   // 콘솔 「화면 멈춤」을 이 노트북이 처음 본 시각(끼어들기 남은 시간 계산용). 순환 위치는 서버의 holdAt · holdTotal 로 계산 (v3.16)
+var lastStep = -1, lastStepKey = '';   // 순환 칸 역행 방지용 (v3.16)
+function stopLive() { if (liveTimer) clearInterval(liveTimer); liveTimer = null; livePanel = ''; livePage = 0; liveSig = ''; livePending = false; liveSwap++; liveDoneSet = null; liveHoldUntil = 0; liveNew = {}; pausedAt = 0; lastStep = -1; lastStepKey = ''; }
 function buildLive(r) {
   stopLive();
   var row = phRow(phase());
@@ -618,31 +627,30 @@ function patchLive(r) {
   var lv = program().live || {}; var T = trendItems(); var hasTrend = T.length > 0; var nPages = hasTrend ? trendPages(T).length : 1;
   var list = (lv.panels || []).filter(function (p) { return !!PANEL_NAMES[p] && (p !== 'trend' || hasTrend); }); if (!list.length) list = ['status'];   // 카드가 없으면 트렌드 패널은 건너뛴다
   var sec = Math.max(5, Number(lv.sec) || 20); var now = Date.now();
-  /* 콘솔 「화면 멈춤」(state.hold): 지금 보이는 패널·장면을 그대로 두고 순환·끼어들기를 세운다. 풀리면 멈춰 있던 시간은 없던 것으로 (v3.10) */
+  /* 콘솔 「화면 멈춤」(state.hold): 순환 시계가 서버가 기록한 멈춘 시각에 고정되므로 보이는 패널·장면이 그대로. 끼어들기도 멈춘 시점 기준으로 세운다 (v3.10 → v3.16) */
   var paused = !!st().hold;
   if (paused) { if (!pausedAt) pausedAt = now; }
-  else if (pausedAt) { var p0 = pausedAt, pd = now - p0; pausedAt = 0; if (rot.at) rot.at += pd; if (liveHoldUntil > 0) liveHoldUntil += pd; for (var kp in liveNew) if (liveNew[kp] < p0) liveNew[kp] += pd; }   // 멈춤 중에 생긴 강조는 이미 보였으니 밀지 않는다
-  /* 작성 완료가 새로 생겼나: 처음 그릴 때는 기준만 잡고, 그 뒤 늘어나면 진행 현황을 바로 보여 준다 (끼어들기 전 위치를 기억) */
+  else if (pausedAt) { var p0 = pausedAt, pd = now - p0; pausedAt = 0; for (var kp in liveNew) if (liveNew[kp] < p0) liveNew[kp] += pd; }   // 멈춤 중에 생긴 강조는 이미 보였으니 밀지 않는다 (끼어들기는 공유 시계라 따로 밀 필요 없음)
+  /* 작성 완료가 새로 생겼나: 처음 그릴 때는 기준만 잡고, 그 뒤 늘어나면 진행 현황을 바로 보여 준다(멈춤 중에는 칸 강조만) */
   var dn = TABLES.filter(function (t) { return recStatus(t, r) === 'done'; });
+  var sc = syncClock();   // 공유 시계: 멈춘 동안 서버의 멈춘 시각에 고정, 이어 가면 멈춘 시간은 빠짐 → 끼어들기도 두 곳이 같이 멈추고 같이 이어 감 (v3.16)
   if (liveDoneSet === null) liveDoneSet = {};
-  else { var fresh = dn.filter(function (t) { return !liveDoneSet[t]; }); if (fresh.length) { if (!paused) { if (liveHoldUntil <= now && !liveHoldFrom) liveHoldFrom = { i: rot.i, page: rot.page, shown: now - rot.at }; liveHoldUntil = now + Math.max(8, sec) * 1000; } fresh.forEach(function (t) { liveNew[t] = now; }); } }   // 멈춤 중에는 끼어들지 않고 칸 강조만
+  else { var fresh = dn.filter(function (t) { return !liveDoneSet[t]; }); if (fresh.length) { if (!paused) liveHoldUntil = sc + Math.max(8, sec) * 1000; fresh.forEach(function (t) { liveNew[t] = now; }); } }
   var seen = {}; dn.forEach(function (t) { seen[t] = true; }); liveDoneSet = seen;
   for (var k in liveNew) if (now - liveNew[k] > 6000) delete liveNew[k];   // 강조는 6초
-  var hold = liveHoldUntil > now;
+  var hold = liveHoldUntil > sc;   // 멈춘 동안에는 공유 시계가 서 있으므로 끼어들기 남은 시간도 흐르지 않는다
   var pinned = !!(lv.pin && PANEL_NAMES[lv.pin]) && (lv.pin !== 'trend' || hasTrend);
-  function advance() { var cur = list[rot.i % list.length]; if (cur === 'trend' && rot.page + 1 < nPages) rot.page++; else { rot.i = (rot.i + 1) % list.length; rot.page = 0; } rot.at = now; }   // 트렌드는 장면을 다 보여 준 뒤 다음 패널
+  /* 순환 칸: 패널마다 한 칸, 트렌드는 장면(1~2, 3~4, 5~6)마다 한 칸. 위치 = (라운드 시작부터 흐른 서버 시간 - 멈춤 누계) ÷ 간격 → 두 홀 스크린이 같은 칸 (v3.16) */
+  var slots = []; list.forEach(function (p) { if (p === 'trend') { for (var q = 0; q < nPages; q++) slots.push([p, q]); } else slots.push([p, 0]); });
+  var anchor = Number(st().slideAt) || Number(st().roundStart) || 0;   // 진행 화면 장표가 뜬 서버 시각(없으면 라운드 시작) → 2라운드도 「이동 안내」 다음 진행 현황부터
+  var step = Math.floor(Math.max(0, sc - anchor) / (sec * 1000));
+  var stepKey = anchor + '|' + sec + '|' + slots.length + '|' + (lv.pin || '');   // 안전장치: 같은 기준에서 한 칸만 뒤로 가는 계산은 무시(콘솔 예측 상태가 서버 값으로 바뀔 때 등). 멈춘 동안은 서버 기준 그대로
+  if (!paused && stepKey === lastStepKey && step === lastStep - 1) step = lastStep;
+  lastStep = step; lastStepKey = stepKey;
   var name, page = 0;
-  if (paused) { name = livePanel || (hold ? 'status' : (pinned ? lv.pin : list[rot.i % list.length])); page = livePanel ? livePage : 0; if (!rot.at) rot.at = now; }   // 화면 멈춤: 지금 보이는 패널·장면 그대로 (내용 갱신은 아래에서 계속). 멈춘 채로 새로 뜬 화면이면 고정 패널 → 첫 패널
-  else if (hold) name = 'status';
-  else {
-    if (liveHoldFrom) {   // 끼어들기가 끝남: 반 이상 보여 준 항목이면 다음 항목부터, 아니면 그 항목을 다시 (예: 트렌드 1~2 중 완료 → 현황 → 3~4)
-      var hf = liveHoldFrom; liveHoldFrom = null; rot.i = hf.i; rot.page = hf.page; rot.at = now;
-      if (!pinned && (hf.shown >= sec * 500 || list[hf.i % list.length] === 'status')) advance();
-    }
-    if (!rot.at) rot.at = now;
-    if (pinned) { name = lv.pin; if (name === 'trend') { if (now - rot.at >= sec * 1000) { rot.page = (rot.page + 1) % nPages; rot.at = now; } page = rot.page % nPages; } }
-    else { if (now - rot.at >= sec * 1000) advance(); name = list[rot.i % list.length]; page = name === 'trend' ? rot.page % nPages : 0; }
-  }
+  if (hold) name = 'status';   // 끼어들기: 진행 현황 (끝나면 시계가 가리키는 칸으로 — 두 홀이 다시 같은 칸)
+  else if (pinned) { name = lv.pin; page = name === 'trend' ? step % nPages : 0; }
+  else { var sl = slots[step % slots.length]; name = sl[0]; page = sl[1]; }
   if (name !== livePanel || page !== livePage) showPanel(name, page, r, true);
   else if (!livePending) { var sig = name + '|' + panelSig(name, page, r); if (sig !== liveSig) showPanel(name, page, r, false); }
   info.textContent = nowHM();   // 하단은 현재 시각만 (v3.3)
@@ -653,7 +661,6 @@ var viewKey = '';   // 지금 그려져 있는 장표 키(단계/번호/타입).
 function render() {
   var s = st(); var ph = phase(); var deck = deckFor(ph) || []; var idx = Math.max(0, Math.min(Number(s.slide) || 0, Math.max(0, deck.length - 1)));
   var cur = curSlide() || deck[idx] || { type: 'end' };
-  if (cur.type !== 'collect') { collectPauseAt = 0; collectOffset = 0; }   // 휴식 화면이 아닌 장(벽·진행 화면 포함)으로 가면 교대 시계를 서버 시각에 다시 맞춘다(다른 스크린과 같은 장면) (v3.10)
   if (ph === 'reg' || s.forceWall || cur.type === 'wall') { stopLive(); if (!wallBuilt) buildWall(); patchWall(); viewKey = 'wall'; return; }
   wallBuilt = false;
   var key = ph + '/' + idx + '/' + cur.type;

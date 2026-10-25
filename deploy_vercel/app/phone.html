@@ -163,33 +163,42 @@ var BC = null; try { BC = new BroadcastChannel('gwb-live'); } catch (e0) { BC = 
 function predictState(s, patch) {
   var st = JSON.parse(JSON.stringify(s || {})); patch = patch || {}; var now = nowServer();
   if (patch.phase !== undefined && PHASES.indexOf(patch.phase) >= 0) {
-    var changed = st.phase !== patch.phase; st.phase = patch.phase; if (changed) { st.slide = 0; st.hold = false; }
+    var changed = st.phase !== patch.phase; st.phase = patch.phase; if (changed) { st.slide = 0; st.hold = false; st.holdAt = 0; st.holdTotal = 0; st.slideAt = now; }
     if (patch.phase === 'r1' || patch.phase === 'r2') { var rn = patch.phase === 'r1' ? 1 : 2; if (changed || patch.restartRound || st.round !== rn) { st.round = rn; st.roundStart = now; } }
     if (patch.phase === 'collect') st.closed = true;
     if (patch.phase === 'reg' || patch.phase === 'part1' || patch.phase === 'p2') { st.round = 0; st.roundStart = 0; }
   }
-  if (patch.restartRound && (st.phase === 'r1' || st.phase === 'r2')) st.roundStart = now;
-  if (patch.slide !== undefined) { var sl = Number(patch.slide); if (sl >= 0 && sl <= 99 && sl === Math.floor(sl)) { if (sl !== Number(st.slide)) st.hold = false; st.slide = sl; } }
+  if (patch.restartRound && (st.phase === 'r1' || st.phase === 'r2')) { st.roundStart = now; st.slideAt = now; st.holdTotal = 0; if (st.hold) st.holdAt = now; }
+  if (patch.slide !== undefined) { var sl = Number(patch.slide); if (sl >= 0 && sl <= 99 && sl === Math.floor(sl)) { if (sl !== Number(st.slide)) { setHold(st, false, now); st.holdTotal = 0; st.slideAt = now; } st.slide = sl; } }
   if (patch.toggleSame !== undefined) { var k2 = String(patch.toggleSame).slice(0, 20); if (!st.same || typeof st.same !== 'object') st.same = {}; st.same[k2] = !st.same[k2]; }
   if (patch.closed !== undefined) st.closed = !!patch.closed;
   if (patch.forceWall !== undefined) st.forceWall = !!patch.forceWall;
   if (patch.video !== undefined) { var vc = (patch.video && typeof patch.video === 'object') ? String(patch.video.cmd || '') : String(patch.video || ''); if (['play', 'pause', 'restart'].indexOf(vc) >= 0) st.videoCmd = { cmd: vc, at: now }; }
   if (patch.expected !== undefined) { var ex = Number(patch.expected); if (ex >= 0 && ex <= 999) st.expected = ex; }
-  if (patch.hold !== undefined) st.hold = !!patch.hold;
+  if (patch.hold !== undefined) setHold(st, !!patch.hold, now);
   if (patch.op !== undefined) st.op = String(patch.op).slice(0, 24);
   st.updatedAt = now;
   return st;
+}
+/* 화면 멈춤 켜기·끄기 + 시각 기록 — Code.gs setHold_ 와 같은 규칙 (v3.16) */
+function setHold(st, on, now) {
+  if (on && !st.hold) st.holdAt = now;
+  else if (!on && st.hold) { st.holdTotal = (Number(st.holdTotal) || 0) + (Number(st.holdAt) ? Math.max(0, now - Number(st.holdAt)) : 0); st.holdAt = 0; }
+  st.hold = !!on;
 }
 
 /* ---- 공유 상태 폴링 ---- */
 var S = { rev: 0, state: {}, lines: [], records: {}, program: null, analysis: null };
 var serverOffset = 0, pollTimer = null, pollFail = 0;
+/* 서버 시각 추정 (v3.16): 표본 = 실제 차이 - 응답 지연(지연은 늘 0 이상) → 최근 20개 중 가장 큰 값이 실제에 가장 가깝다. 응답마다 덮어쓰면 지연 차이로 시계가 앞뒤로 흔들린다 */
+var offSamples = [];
+function setServerOffset(now) { if (!now) return; var smp = Number(now) - Date.now(); if (offSamples.length && smp < serverOffset - 3000) offSamples = []; offSamples.push(smp); if (offSamples.length > 20) offSamples.shift(); serverOffset = Math.max.apply(null, offSamples); }
 function startPolling(ms, onSnap, waitMs) {   // waitMs: 서버가 개정 번호가 바뀔 때까지 기다렸다 답하는 긴 폴링(스크린, v3.9). 로컬 MOCK 은 무시
   function tick() {
     API.call('getSnapshot', waitMs ? [S.rev, waitMs] : [S.rev], function (snap) {
       pollFail = 0;
-      if (snap && !snap.same) { serverOffset = (snap.now || Date.now()) - Date.now(); if (typeof reconcileSnap === 'function') { try { snap = reconcileSnap(snap) || snap; } catch (e0) {} } S = snap; try { onSnap(snap); } catch (e) { console.error(e); } }   // reconcileSnap: 페이지가 정의하면 낙관적 상태와 맞춘다 (v3.10)
-      else if (snap && snap.now) { serverOffset = snap.now - Date.now(); if (snap.editing !== undefined && snap.editing !== S.editing) { S.editing = snap.editing; try { onSnap(S); } catch (e2) { console.error(e2); } } }   // 「수정 중」 인원만 바뀐 경우
+      if (snap && !snap.same) { setServerOffset(snap.now); if (typeof reconcileSnap === 'function') { try { snap = reconcileSnap(snap) || snap; } catch (e0) {} } S = snap; try { onSnap(snap); } catch (e) { console.error(e); } }   // reconcileSnap: 페이지가 정의하면 낙관적 상태와 맞춘다 (v3.10)
+      else if (snap && snap.now) { setServerOffset(snap.now); if (snap.editing !== undefined && snap.editing !== S.editing) { S.editing = snap.editing; try { onSnap(S); } catch (e2) { console.error(e2); } } }   // 「수정 중」 인원만 바뀐 경우
       pollTimer = setTimeout(tick, ms);
     }, function (e) { pollFail++; console.warn('poll', e); pollTimer = setTimeout(tick, Math.min(waitMs ? 5000 : 15000, Math.max(1000, ms) * (1 + pollFail))); });   // 긴 폴링(스크린)은 한 번 실패해도 5초 안에 다시 (v3.10)
   }
@@ -493,20 +502,20 @@ var MOCK = (function () {
       var d = load(), s = d.state;
       if (patch.phase !== undefined) {
         if (PHASES.indexOf(patch.phase) < 0) return fail('단계 값 오류');
-        var changed = s.phase !== patch.phase; s.phase = patch.phase; if (changed) { s.slide = 0; s.hold = false; }
+        var changed = s.phase !== patch.phase; s.phase = patch.phase; if (changed) { s.slide = 0; s.hold = false; s.holdAt = 0; s.holdTotal = 0; s.slideAt = Date.now(); }
         if (patch.phase === 'r1' || patch.phase === 'r2') { var rn = patch.phase === 'r1' ? 1 : 2; if (changed || patch.restartRound || s.round !== rn) { s.round = rn; s.roundStart = Date.now(); } }
         if (patch.phase === 'collect') s.closed = true;
         if (patch.phase === 'reg' || patch.phase === 'part1' || patch.phase === 'p2') { s.round = 0; s.roundStart = 0; }
       }
-      if (patch.restartRound && (s.phase === 'r1' || s.phase === 'r2')) s.roundStart = Date.now();
-      if (patch.slide !== undefined) { var sl = Number(patch.slide); if (!isInt(sl, 0, 99)) return fail('장표 번호 오류'); if (sl !== Number(s.slide)) s.hold = false; s.slide = sl; }
+      if (patch.restartRound && (s.phase === 'r1' || s.phase === 'r2')) { s.roundStart = Date.now(); s.slideAt = s.roundStart; s.holdTotal = 0; if (s.hold) s.holdAt = s.roundStart; }
+      if (patch.slide !== undefined) { var sl = Number(patch.slide); if (!isInt(sl, 0, 99)) return fail('장표 번호 오류'); if (sl !== Number(s.slide)) { setHold(s, false, Date.now()); s.holdTotal = 0; s.slideAt = Date.now(); } s.slide = sl; }
       if (patch.same !== undefined) { var sm = {}; if (isObj(patch.same)) Object.keys(patch.same).slice(0, 40).forEach(function (k) { sm[String(k).slice(0, 20)] = !!patch.same[k]; }); s.same = sm; }
       if (patch.toggleSame !== undefined) { var k2 = String(patch.toggleSame).slice(0, 20); if (!isObj(s.same)) s.same = {}; s.same[k2] = !s.same[k2]; }
       if (patch.closed !== undefined) s.closed = !!patch.closed;
       if (patch.forceWall !== undefined) s.forceWall = !!patch.forceWall;
       if (patch.video !== undefined) { var vc = isObj(patch.video) ? String(patch.video.cmd || '') : String(patch.video || ''); if (['play', 'pause', 'restart'].indexOf(vc) < 0) return fail('영상 명령 오류 (play·pause·restart)'); s.videoCmd = { cmd: vc, at: Date.now() }; }
       if (patch.expected !== undefined) { var ex = Number(patch.expected); if (!isInt(ex, 0, 999)) return fail('참석자 수는 0~999 사이'); s.expected = ex; }
-      if (patch.hold !== undefined) s.hold = !!patch.hold;
+      if (patch.hold !== undefined) setHold(s, !!patch.hold, Date.now());
       if (patch.op !== undefined) s.op = String(patch.op).slice(0, 24);
       s.updatedAt = Date.now(); bump(d); return { ok: true, state: s, rev: d.rev };
     },
