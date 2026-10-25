@@ -1,6 +1,6 @@
 ﻿# 한 번에 배포: Apps Script(clasp) → Vercel(정적 자료) → GitHub(커밋 · 푸시)
 # 사용:  .\배포.ps1 -Message "바꾼 내용 한 줄"   (옵션: -SkipApps  -SkipVercel  -SkipGit)
-# Vercel 프로젝트가 GitHub 저장소와 연결되어 있어 deploy_vercel 이 바뀐 푸시는 Vercel 이 자동 배포한다. 여기서 이미 배포한 커밋은 [skip ci] 를 붙여 두 번 배포하지 않는다 (v3.14)
+# Vercel 프로젝트가 GitHub 저장소와 연결되어(Root Directory deploy_vercel) 푸시가 곧 Vercel 배포다. PC 에서 CLI 로 올리지 않는다 (v3.15). $vercelOk 는 늘 false 라 [skip ci] 도 붙지 않는다
 param([string]$Message = "update", [switch]$SkipApps, [switch]$SkipVercel, [switch]$SkipGit)
 $ErrorActionPreference = "Continue"
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -29,9 +29,9 @@ if (-not $SkipVercel) {
   if (Test-Path (Join-Path $root "스크린_스토리보드.pdf")) { Copy-Item (Join-Path $root "스크린_스토리보드.pdf") (Join-Path $dv "storyboard.pdf") -Force }
   if (Test-Path (Join-Path $root "네트워크_포럼_운영프로그램_시뮬레이션.html")) { New-Item -ItemType Directory -Force (Join-Path $dv "sim") | Out-Null; Copy-Item (Join-Path $root "네트워크_포럼_운영프로그램_시뮬레이션.html") (Join-Path $dv "sim\index.html") -Force }
   Push-Location $dv
-  & $vercel deploy --prod --yes --archive=tgz 2>&1 | Select-String -Pattern "Production|Aliased|rror" | ForEach-Object { $_.Line }
-  $vercelOk = ($LASTEXITCODE -eq 0)
-  if (-not $vercelOk) { Write-Host "Vercel CLI 배포 실패(exit $LASTEXITCODE) - 푸시하면 Vercel 이 GitHub 에서 받아 다시 배포합니다" -ForegroundColor Yellow }
+  # v3.15: Vercel 프로젝트 Root Directory 가 deploy_vercel 이라(GitHub 연동) 이 폴더에서 CLI 로 올리면 "deploy_vercel/deploy_vercel 없음"으로 실패한다.
+  #        그래서 CLI 배포는 하지 않고, 아래 GitHub 푸시를 Vercel 이 받아 자동 배포한다(Deployments 기록은 Actions 「Record Vercel deployment」).
+  if ($SkipGit) { Write-Host "주의: -SkipGit 이면 Vercel 에 올라가지 않습니다(푸시가 곧 Vercel 배포)" -ForegroundColor Yellow } else { Write-Host "Vercel 은 GitHub 푸시로 자동 배포됩니다" }
   Pop-Location
 }
 

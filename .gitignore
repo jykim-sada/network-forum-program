@@ -19,3 +19,6 @@ appsscript/.clasp.json
 # 운영체제
 Thumbs.db
 .DS_Store
+
+# 디자인 시안 이미지(로컬 검토용)
+시안_*.png
