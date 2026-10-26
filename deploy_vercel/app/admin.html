@@ -337,7 +337,8 @@ function mergeProgram(p) {
 function program() { return mergeProgram(S.program); }
 /* 참가자 명단 (v3.17): 불참(노쇼) 이름은 1·2라운드 모두에서 뺀다. withAbsent=true 면 불참자도 포함(기록자 화면 · 콘솔 표시용) */
 function absentSet() { var o = {}; (program().absent || []).forEach(function (n) { o[n] = true; }); return o; }
-function rosterOf(t, r, withAbsent) { var ro = program().roster || {}; var ab = withAbsent ? {} : absentSet(); return ((((ro[t] || {})[r]) || [])).map(function (n) { return String(n == null ? '' : n).trim(); }).filter(function (n) { return n && !ab[n]; }); }
+function koSort(a) { return a.slice().sort(function (x, y) { try { return String(x).localeCompare(String(y), 'ko'); } catch (e) { return x < y ? -1 : x > y ? 1 : 0; } }); }   // 이름은 가나다순 (v3.17.1)
+function rosterOf(t, r, withAbsent) { var ro = program().roster || {}; var ab = withAbsent ? {} : absentSet(); return koSort((((ro[t] || {})[r]) || []).map(function (n) { return String(n == null ? '' : n).trim(); }).filter(function (n) { return n && !ab[n]; })); }
 
 /* ---- 진행 상태 파생값 ---- */
 function phase() { return st().phase || 'reg'; }
@@ -904,7 +905,7 @@ function saveProgram() {
 })();
 
 /* ---- 참가자 명단 — 편집본 RS 로만 그리고, 폴링으로는 다시 그리지 않는다 ---- */
-function rsFrom(p) { var r = {}; var ro = (p && p.roster) || {}; TABLES.forEach(function (t) { var x = ro[t] || {}; r[t] = { 1: (x[1] || []).map(String).join('\n'), 2: (x[2] || []).map(String).join('\n') }; }); return r; }
+function rsFrom(p) { var r = {}; var ro = (p && p.roster) || {}; TABLES.forEach(function (t) { var x = ro[t] || {}; r[t] = { 1: koSort((x[1] || []).map(String)).join('\n'), 2: koSort((x[2] || []).map(String)).join('\n') }; }); return r; }   // 편집 칸도 가나다순 (v3.17.1)
 function renderRoster() { if (!RS) { RS = rsFrom(program()); rsDrawn = false; } if (!rsDrawn) drawRoster(); else drawAbsent(); }   // 불참 칸은 서버 값으로 늘 다시 그린다 (v3.17)
 /* ---- 당일 불참(노쇼) 체크 (v3.17): 이름을 누르면 바로 저장 — 1·2라운드 모두에서 빠지고 스크린 · 기록자 화면에 몇 초 안에 반영 ---- */
 var absQuery = '', absBusy = false;
@@ -912,14 +913,14 @@ function absPeople() {   // 1라운드 테이블 순서로 모든 이름(2라운
   var seen = {}, groups = [];
   TABLES.forEach(function (t) { var a = rosterOf(t, 1, true).filter(function (n) { if (seen[n]) return false; seen[n] = true; return true; }); if (a.length) groups.push({ label: '1라운드 테이블 ' + t, names: a }); });
   var extra = []; TABLES.forEach(function (t) { rosterOf(t, 2, true).forEach(function (n) { if (!seen[n]) { seen[n] = true; extra.push(n); } }); });
-  if (extra.length) groups.push({ label: '2라운드에만 있는 이름', names: extra });
+  if (extra.length) groups.push({ label: '2라운드에만 있는 이름', names: koSort(extra) });
   return groups;
 }
 function seatOf(n) { var a = []; [1, 2].forEach(function (r) { TABLES.forEach(function (t) { if (rosterOf(t, r, true).indexOf(n) >= 0) a.push(r + 'R ' + t + '번'); }); }); return a.join(' · '); }
 function drawAbsent() {
   var box = document.getElementById('absCard'); if (!box) return;
   var ab = absentSet(), groups = absPeople(); var total = 0; groups.forEach(function (g) { total += g.names.length; });
-  var absNames = Object.keys(ab), present = total - absNames.filter(function (n) { return groups.some(function (g) { return g.names.indexOf(n) >= 0; }); }).length;
+  var absNames = koSort(Object.keys(ab)), present = total - absNames.filter(function (n) { return groups.some(function (g) { return g.names.indexOf(n) >= 0; }); }).length;
   var q = absQuery.trim();
   box.innerHTML = '<h3>당일 불참 체크<small>이름을 누르면 불참 ↔ 참석 · 1·2라운드 모두 · 누르는 즉시 저장되어 스크린 좌석 안내 · 명단 패널 · 기록자 화면에 몇 초 안에 반영</small></h3>' +
     (total ? '<div class="row"><input id="absFind" placeholder="이름 찾기" value="' + esc(absQuery) + '" style="max-width:180px"><span class="pill ok">참석 ' + present + '명</span><span class="pill ' + (absNames.length ? 'warn' : 'wait') + '">불참 ' + absNames.length + '명</span>' +
