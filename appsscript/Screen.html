@@ -350,11 +350,11 @@ function buildWall() {
   var row = phRow(phase());
   document.getElementById('screen').innerHTML = frame('',   // 위쪽 칩·시간 대신 행사 제목과 슬로건을 크게 (v3.9.4)
     heroHTML() +
-    '<div class="wall"><div class="wall-left"><h1>' + esc(PROMPT) + '</h1><p class="guide">테이블의 QR을 찍어 주세요</p><p>QR을 찍고 자유롭게 적어 주세요 · 무기명</p>' +
-    '<div class="qrbox"><div id="qr"></div><small>테이블 QR이 없을 때</small></div>' +
+    '<div class="wall"><div class="wall-left"><h1>' + esc(PROMPT) + '</h1><p class="guide">화면의 QR을 찍어 주세요</p><p>QR을 찍고 자유롭게 적어 주세요 · 무기명</p>' +
+    '<div class="qrbox"><div id="qr"></div></div>' +
     '<div class="cnt" id="wCnt"></div><div class="goal" id="wGoal" style="display:none"><i id="wGoalBar"></i></div><div class="goal-txt" id="wGoalTxt"></div></div>' +
     '<div class="wall-right"><div id="wDone"></div><div class="latest" id="wLatest"></div>' + (WALL_MODE === 'flow' ? '<div class="flowwrap"><div class="track" id="wTrack"></div></div>' : '<div class="grid" id="wGrid"></div>') + '<div class="wpage" id="wPage"></div></div></div>',
-    '<span>테이블 QR은 각 테이블에, 이 화면의 QR은 예비용</span><span id="wClock"></span>');
+    '<span></span><span id="wClock"></span>');   // 테이블 QR 없음 — QR 설명 문구 삭제 (v3.16.1)
   qrInto(document.getElementById('qr'), pageUrl('phone'), 170); fitOneLine();
   wallBuilt = true; wallPage = 0; known = new Set(); firstPatch = true; lastLatestId = null; flowOffset = 0;
 }
