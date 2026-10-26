@@ -223,9 +223,13 @@ function mergeProgram(p) {
   o.close = obj(p.close, D.close); if (o.close.text === LEGACY_CLOSE_TEXT) o.close.text = '';
   o.trends = obj(p.trends, D.trends); if (!String(o.trends.src || '').trim()) o.trends.src = D.trends.src; o.trends.collect = o.trends.collect !== false; o.trends.sec = Math.max(5, Math.min(60, Math.round(Number(o.trends.sec) || D.trends.sec)));
   o.trends.items = (Array.isArray(o.trends.items) ? o.trends.items : D.trends.items).slice(0, 10).map(function (it) { return obj(it, { k: '', s: '', m: '' }); });
+  var seenAb = {}; o.absent = (Array.isArray(p.absent) ? p.absent : []).map(function (n) { return String(n == null ? '' : n).slice(0, 12).trim(); }).filter(function (n) { if (!n || seenAb[n]) return false; seenAb[n] = true; return true; }).slice(0, 150);   // 당일 불참 (v3.17)
   return o;
 }
 function program() { return mergeProgram(S.program); }
+/* 참가자 명단 (v3.17): 불참(노쇼) 이름은 1·2라운드 모두에서 뺀다. withAbsent=true 면 불참자도 포함(기록자 화면 · 콘솔 표시용) */
+function absentSet() { var o = {}; (program().absent || []).forEach(function (n) { o[n] = true; }); return o; }
+function rosterOf(t, r, withAbsent) { var ro = program().roster || {}; var ab = withAbsent ? {} : absentSet(); return ((((ro[t] || {})[r]) || [])).map(function (n) { return String(n == null ? '' : n).trim(); }).filter(function (n) { return n && !ab[n]; }); }
 
 /* ---- 진행 상태 파생값 ---- */
 function phase() { return st().phase || 'reg'; }
@@ -513,7 +517,8 @@ var MOCK = (function () {
       if (patch.op !== undefined) s.op = String(patch.op).slice(0, 24);
       s.updatedAt = Date.now(); bump(d); return { ok: true, state: s, rev: d.rev };
     },
-    adminSetProgram: function (pin, prog) { if (!isObj(prog)) return fail('프로그램 형식 오류'); var d = load(); d.program = mergeProgram(prog); var js = JSON.stringify(d.program); if (js.length > LIMIT.program) return fail('프로그램 설정이 너무 큽니다 (' + js.length + '자)'); bump(d); return { ok: true, program: d.program, rev: d.rev }; },
+    adminSetAbsent: function (pin, names) { if (!Array.isArray(names)) return fail('불참 명단 형식 오류'); var d = load(); var p = mergeProgram(d.program); p.absent = names; d.program = mergeProgram(p); bump(d); return { ok: true, program: d.program, rev: d.rev }; },   // v3.17
+    adminSetProgram: function (pin, prog) { if (!isObj(prog)) return fail('프로그램 형식 오류'); var d = load(); var keepAb = mergeProgram(d.program).absent; d.program = mergeProgram(prog); d.program.absent = keepAb; var js = JSON.stringify(d.program); if (js.length > LIMIT.program) return fail('프로그램 설정이 너무 큽니다 (' + js.length + '자)'); bump(d); return { ok: true, program: d.program, rev: d.rev }; },
     adminHideLine: function (pin, id, hidden) { var d = load(); var f = false; d.lines.forEach(function (o) { if (o.id === id) { o.hidden = !!hidden; f = true; } }); if (!f) return fail('글을 찾지 못했습니다'); bump(d); return { ok: true }; },
     adminAnalyze: function (pin) { var d = load(); var ana = analyze(d); d.analysis = ana; d.state.analyzed = true; d.state.analyzedAt = Date.now(); d.state.closed = true; bump(d); return { ok: true, engine: ana.engine, analysis: ana }; },
     adminFillDemo: function (pin) { return fns.mockFillDemo(); },

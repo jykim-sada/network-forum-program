@@ -117,6 +117,17 @@ a.btn{text-decoration:none;display:inline-block}
 .rcell{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px}
 .rcell h4{margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;font-size:14px}
 .rcell textarea{min-height:140px;resize:vertical;line-height:1.5}
+/* 당일 불참 체크 (v3.17) */
+.abs-card{border-left:4px solid #B23A2E}
+.abs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px;margin-top:10px}
+.abs-t{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fff}
+.abs-t h4{margin:0 0 6px;font-size:13px;color:var(--muted);font-weight:600}
+.abs-n{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 12px;margin:2px;font-size:15px;cursor:pointer}
+.abs-n:hover{border-color:var(--gg)}
+.abs-n.off{background:#FDECEA;color:#B23A2E;text-decoration:line-through;border-color:#F3B8B2}
+.abs-n.hit{outline:3px solid var(--orange);outline-offset:1px}
+.abs-n:disabled{opacity:.5;cursor:wait}
+.abs-list{margin-top:8px;font-size:13px;color:#B23A2E}
 @media (max-width:900px){.rgrid{grid-template-columns:1fr 1fr}.lrow.spk,.lrow.fact{grid-template-columns:1fr 1fr auto}}
 @media (max-width:600px){.rgrid{grid-template-columns:1fr}.lrow.spk,.lrow.fact,.lrow.trend{grid-template-columns:1fr auto}.lrow.greet{grid-template-columns:auto minmax(0,1fr) auto}.lrow.greet input[data-k$=".name"]{grid-column:1/-1}}
 .gate{position:fixed;inset:0;background:var(--gg-d);display:flex;align-items:center;justify-content:center;z-index:50}
@@ -396,14 +407,46 @@ function saveProgram() {
 
 /* ---- 참가자 명단 — 편집본 RS 로만 그리고, 폴링으로는 다시 그리지 않는다 ---- */
 function rsFrom(p) { var r = {}; var ro = (p && p.roster) || {}; TABLES.forEach(function (t) { var x = ro[t] || {}; r[t] = { 1: (x[1] || []).map(String).join('\n'), 2: (x[2] || []).map(String).join('\n') }; }); return r; }
-function renderRoster() { if (!RS) { RS = rsFrom(program()); rsDrawn = false; } if (!rsDrawn) drawRoster(); }
+function renderRoster() { if (!RS) { RS = rsFrom(program()); rsDrawn = false; } if (!rsDrawn) drawRoster(); else drawAbsent(); }   // 불참 칸은 서버 값으로 늘 다시 그린다 (v3.17)
+/* ---- 당일 불참(노쇼) 체크 (v3.17): 이름을 누르면 바로 저장 — 1·2라운드 모두에서 빠지고 스크린 · 기록자 화면에 몇 초 안에 반영 ---- */
+var absQuery = '', absBusy = false;
+function absPeople() {   // 1라운드 테이블 순서로 모든 이름(2라운드에만 있는 이름은 따로)
+  var seen = {}, groups = [];
+  TABLES.forEach(function (t) { var a = rosterOf(t, 1, true).filter(function (n) { if (seen[n]) return false; seen[n] = true; return true; }); if (a.length) groups.push({ label: '1라운드 테이블 ' + t, names: a }); });
+  var extra = []; TABLES.forEach(function (t) { rosterOf(t, 2, true).forEach(function (n) { if (!seen[n]) { seen[n] = true; extra.push(n); } }); });
+  if (extra.length) groups.push({ label: '2라운드에만 있는 이름', names: extra });
+  return groups;
+}
+function seatOf(n) { var a = []; [1, 2].forEach(function (r) { TABLES.forEach(function (t) { if (rosterOf(t, r, true).indexOf(n) >= 0) a.push(r + 'R ' + t + '번'); }); }); return a.join(' · '); }
+function drawAbsent() {
+  var box = document.getElementById('absCard'); if (!box) return;
+  var ab = absentSet(), groups = absPeople(); var total = 0; groups.forEach(function (g) { total += g.names.length; });
+  var absNames = Object.keys(ab), present = total - absNames.filter(function (n) { return groups.some(function (g) { return g.names.indexOf(n) >= 0; }); }).length;
+  var q = absQuery.trim();
+  box.innerHTML = '<h3>당일 불참 체크<small>이름을 누르면 불참 ↔ 참석 · 1·2라운드 모두 · 누르는 즉시 저장되어 스크린 좌석 안내 · 명단 패널 · 기록자 화면에 몇 초 안에 반영</small></h3>' +
+    (total ? '<div class="row"><input id="absFind" placeholder="이름 찾기" value="' + esc(absQuery) + '" style="max-width:180px"><span class="pill ok">참석 ' + present + '명</span><span class="pill ' + (absNames.length ? 'warn' : 'wait') + '">불참 ' + absNames.length + '명</span>' +
+      '<button class="btn ghost sm" id="absExpected" title="오늘의 한줄 목표 · 작성 완료 비율에 쓰는 숫자">당일 참석자 수를 ' + present + '명으로</button>' + (absNames.length ? '<button class="btn ghost sm" id="absClear">불참 모두 해제</button>' : '') + '</div>' +
+      (absNames.length ? '<div class="abs-list">불참: ' + absNames.map(function (n) { return esc(n) + ' <small>(' + esc(seatOf(n) || '명단에 없음') + ')</small>'; }).join(', ') + '</div>' : '') +
+      '<div class="abs-grid">' + groups.map(function (g) { return '<div class="abs-t"><h4>' + esc(g.label) + '</h4>' + g.names.map(function (n) { var hit = q && n.indexOf(q) >= 0; return '<button class="abs-n' + (ab[n] ? ' off' : '') + (hit ? ' hit' : '') + '" data-n="' + esc(n) + '"' + (absBusy ? ' disabled' : '') + '>' + esc(n) + '</button>'; }).join('') + '</div>'; }).join('') + '</div>'
+      : '<p class="hint" style="margin:0">아래 명단을 먼저 저장하면 여기서 불참을 체크할 수 있습니다.</p>');
+  var f = box.querySelector('#absFind'); if (f) { f.oninput = function () { absQuery = f.value; var qq = f.value.trim(); box.querySelectorAll('.abs-n').forEach(function (b) { b.classList.toggle('hit', !!qq && b.dataset.n.indexOf(qq) >= 0); }); }; f.onkeydown = function (e) { if (e.key === 'Enter') { var hits = box.querySelectorAll('.abs-n.hit'); if (hits.length === 1) hits[0].click(); } }; }
+  box.querySelectorAll('.abs-n').forEach(function (b) { b.onclick = function () { var n = b.dataset.n; var cur = Object.keys(absentSet()); var on = cur.indexOf(n) < 0; saveAbsent(on ? cur.concat([n]) : cur.filter(function (x) { return x !== n; }), on ? n + ' 불참 처리 · 화면에서 빠집니다' : n + ' 참석으로 되돌림'); }; });
+  var ex = box.querySelector('#absExpected'); if (ex) ex.onclick = function () { setState({ expected: present }, '당일 참석자 수 ' + present + '명'); };
+  var cl = box.querySelector('#absClear'); if (cl) cl.onclick = function () { ask('불참 ' + absNames.length + '명을 모두 참석으로 되돌릴까요?', function () { saveAbsent([], '불참을 모두 해제했습니다'); }); };
+}
+function saveAbsent(list, msg) {
+  if (absBusy) return; absBusy = true;
+  var keep = S.program; S.program = Object.assign({}, S.program || {}, { absent: list }); drawAbsent();   // 바로 보이게(실패하면 되돌림)
+  admin('adminSetAbsent', [list], function (r) { absBusy = false; if (r && r.ok === false) { S.program = keep; drawAbsent(); toast('저장 실패: ' + (r.error || ''), true); return; } if (r && r.program) S.program = r.program; drawAbsent(); toast(msg); },
+    function () { absBusy = false; S.program = keep; drawAbsent(); });
+}
 function drawRoster() {
   var v = document.getElementById('view-roster');
-  v.innerHTML = '<h2>참가자 명단 <span class="pill">좌석 안내 · 진행 화면</span></h2><p class="hint">테이블·라운드별 참가자 이름입니다. 1라운드 좌석 안내 장표, 2라운드 이동 안내, 진행 화면의 「함께하신 분들」 패널에 그대로 뜹니다. 한 줄에 한 명, 이름 12자·테이블당 12명까지. 「명단 저장」 전까지 이 탭은 자동으로 바뀌지 않습니다.</p>' +
+  v.innerHTML = '<h2>참가자 명단 <span class="pill">좌석 안내 · 진행 화면 · 기록자</span></h2><section class="card abs-card" id="absCard" style="margin-bottom:12px"></section><p class="hint">테이블·라운드별 참가자 이름입니다. 1라운드 좌석 안내 장표, 2라운드 이동 안내, 진행 화면의 「함께하신 분들」 패널에 그대로 뜹니다. 한 줄에 한 명, 이름 12자·테이블당 12명까지. 「명단 저장」 전까지 이 탭은 자동으로 바뀌지 않습니다.</p>' +
     '<section class="card" style="margin-bottom:12px"><h3>붙여넣기로 채우기<small>한 줄에 「테이블번호 이름」 · 번호와 이름 사이는 공백이나 탭</small></h3><div class="row" style="margin-bottom:8px"><label style="font-size:13px">라운드 <select id="pasteRound"><option value="1">1라운드</option><option value="2">2라운드</option></select></label><button class="btn sm" id="pasteFill">격자에 반영</button><span style="font-size:12px;color:var(--muted)">붙여넣은 테이블의 칸은 새 내용으로 바뀌고, 없는 테이블은 그대로 둡니다</span></div><textarea id="pasteBox" rows="5" placeholder="3 홍길동&#10;3 김영희&#10;5 이철수"></textarea></section>' +
     [1, 2].map(function (r) { return '<section class="card" style="margin-bottom:12px"><h3>' + r + '라운드 명단</h3><div class="rgrid">' + TABLES.map(function (t) { var tp = topicOf(t); return '<div class="rcell bd-t' + tp.id + '"><h4><span>테이블 ' + t + ' <small style="color:var(--muted);font-weight:400">' + HALL[t] + '</small></span><span class="tb t' + tp.id + '">주제 ' + tp.id + '</span><span class="pill" id="rc-' + t + '-' + r + '">' + splitLines(RS[t][r]).length + '명</span></h4><textarea data-t="' + t + '" data-r="' + r + '" rows="6" placeholder="한 줄에 한 명">' + esc(RS[t][r]) + '</textarea></div>'; }).join('') + '</div></section>'; }).join('') +
     '<div class="actions"><button class="btn accent" id="saveRs">명단 저장</button><button class="btn ghost" id="reloadRs">서버 값 다시 불러오기</button><span style="font-size:12px;color:var(--muted)">저장하면 스크린에 2초 안에 반영</span></div>';
-  rsDrawn = true;
+  rsDrawn = true; drawAbsent();
   v.querySelector('#pasteFill').onclick = pasteFill;
   v.querySelector('#saveRs').onclick = saveRoster;
   v.querySelector('#reloadRs').onclick = function () { ask('입력 중인 내용을 버리고 서버 값으로 되돌릴까요?', function () { RS = null; renderRoster(); }); };

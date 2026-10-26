@@ -120,6 +120,7 @@ function normalizeProgram_(p) {
   var tr = isObj_(p.trends) ? p.trends : {}; var tsec = Number(tr.sec);
   o.trends = { src: str_(tr.src, 40, D.trends.src).trim() || D.trends.src, collect: tr.collect == null ? D.trends.collect : tr.collect !== false, sec: isInt_(tsec, 5, 60) ? tsec : D.trends.sec,
     items: (Array.isArray(tr.items) ? tr.items : D.trends.items).slice(0, 10).map(function (it) { it = isObj_(it) ? it : {}; return { k: str_(it.k, 30).trim(), s: str_(it.s, 160).trim(), m: str_(it.m, 80).trim() }; }) };
+  var seenAb = {}; o.absent = (Array.isArray(p.absent) ? p.absent : []).map(function (n) { return str_(n, 12).trim(); }).filter(function (n) { if (!n || seenAb[n]) return false; seenAb[n] = true; return true; }).slice(0, 150);   // 당일 불참(노쇼) 이름 — 1·2라운드 공통 (v3.17)
   return o;
 }
 
@@ -153,7 +154,7 @@ function include(name) { return HtmlService.createHtmlOutputFromFile(name).getCo
  *  허용 목록의 공개 함수만, 인자는 JSON 배열. PIN 검사는 각 admin 함수 안에서 그대로. 오류는 {__error} 로 돌려 클라이언트의 실패 처리로 간다.
  *  읽기(getSnapshot)는 GET ?api=1&fn=&args=, 쓰기는 POST(본문 {fn,args}, text/plain 이라 브라우저 사전 요청 없음). */
 var API_GET_FNS = { getSnapshot: 1 };   // GET 으로 허용하는 읽기 함수
-var API_FNS = { getSnapshot: 1, addLine: 1, updateLine: 1, deleteLine: 1, markDone: 1, setEditing: 1, saveRecord: 1, screenReport: 1, adminCheckPin: 1, adminSetState: 1, adminSetProgram: 1, adminAnalyze: 1, adminReset: 1, adminFillDemo: 1, adminHideLine: 1, adminRefresh: 1 };
+var API_FNS = { getSnapshot: 1, addLine: 1, updateLine: 1, deleteLine: 1, markDone: 1, setEditing: 1, saveRecord: 1, screenReport: 1, adminCheckPin: 1, adminSetState: 1, adminSetProgram: 1, adminSetAbsent: 1, adminAnalyze: 1, adminReset: 1, adminFillDemo: 1, adminHideLine: 1, adminRefresh: 1 };
 function doPost(e) {
   var body = {}; try { body = JSON.parse((e && e.postData && e.postData.contents) || '{}') || {}; } catch (err) { body = {}; }
   return apiCall_(body.fn, body.args);
@@ -661,9 +662,20 @@ function adminSetProgram(pin, program) {
   checkPin_(pin);
   if (!isObj_(program)) return { ok: false, error: '프로그램 형식 오류' };
   var prog = normalizeProgram_(program);
+  prog.absent = readProgram_().absent || [];   // 불참 명단은 adminSetAbsent 로만 바뀐다 — 다른 탭 저장이 당일 불참 처리를 덮어쓰지 않게 (v3.17)
   var js = JSON.stringify(prog);
   if (js.length > LIMIT.program) return { ok: false, error: '프로그램 설정이 너무 큽니다 (' + js.length + '자, 최대 ' + LIMIT.program + '자)' };
   writeProgram_(js);
+  var rev = bumpRev_();
+  return { ok: true, program: prog, rev: rev };
+}
+/* 당일 불참(노쇼) 명단 저장 (v3.17, 콘솔 「참가자 명단」 탭). 이름 배열 전체를 받아 program.absent 만 바꾼다 */
+function adminSetAbsent(pin, names) {
+  checkPin_(pin);
+  if (!Array.isArray(names)) return { ok: false, error: '불참 명단 형식 오류' };
+  var cur = readProgram_(); cur.absent = names;
+  var prog = normalizeProgram_(cur);
+  writeProgram_(JSON.stringify(prog));
   var rev = bumpRev_();
   return { ok: true, program: prog, rev: rev };
 }

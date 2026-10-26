@@ -37,6 +37,13 @@ main{max-width:1180px;margin:0 auto;padding:16px}
 .firstq summary{cursor:pointer;color:var(--muted);font-size:13px}
 .firstq p{margin:6px 0 0}
 .rtabs{display:flex;gap:6px;margin:8px 0;flex-wrap:wrap}
+/* 이 테이블 · 이 라운드 참가자 (v3.17) */
+.people{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--gg);border-radius:8px;padding:10px 14px;margin:8px 0;display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
+.people .ph{font-weight:700;color:var(--gg);margin-right:4px;white-space:nowrap}
+.people .pn{background:var(--soft);border-radius:999px;padding:3px 12px;font-size:16px;font-weight:700;white-space:nowrap}
+.people .pn.off{background:#FDECEA;color:#B23A2E;text-decoration:line-through;font-weight:400}
+.people .pn.off::after{content:" 불참";text-decoration:none;display:inline-block;margin-left:2px;font-size:12px}
+.people .pe{color:var(--muted);font-size:13px}
 .rtabs button{background:#fff;border:1px solid var(--line);border-radius:6px;padding:8px 14px}
 .rtabs button.on{background:var(--gg);color:#fff;border-color:var(--gg)}
 .rtabs button small{color:var(--muted)}.rtabs button.on small{color:#fff;opacity:.8}
@@ -261,9 +268,13 @@ function mergeProgram(p) {
   o.close = obj(p.close, D.close); if (o.close.text === LEGACY_CLOSE_TEXT) o.close.text = '';
   o.trends = obj(p.trends, D.trends); if (!String(o.trends.src || '').trim()) o.trends.src = D.trends.src; o.trends.collect = o.trends.collect !== false; o.trends.sec = Math.max(5, Math.min(60, Math.round(Number(o.trends.sec) || D.trends.sec)));
   o.trends.items = (Array.isArray(o.trends.items) ? o.trends.items : D.trends.items).slice(0, 10).map(function (it) { return obj(it, { k: '', s: '', m: '' }); });
+  var seenAb = {}; o.absent = (Array.isArray(p.absent) ? p.absent : []).map(function (n) { return String(n == null ? '' : n).slice(0, 12).trim(); }).filter(function (n) { if (!n || seenAb[n]) return false; seenAb[n] = true; return true; }).slice(0, 150);   // 당일 불참 (v3.17)
   return o;
 }
 function program() { return mergeProgram(S.program); }
+/* 참가자 명단 (v3.17): 불참(노쇼) 이름은 1·2라운드 모두에서 뺀다. withAbsent=true 면 불참자도 포함(기록자 화면 · 콘솔 표시용) */
+function absentSet() { var o = {}; (program().absent || []).forEach(function (n) { o[n] = true; }); return o; }
+function rosterOf(t, r, withAbsent) { var ro = program().roster || {}; var ab = withAbsent ? {} : absentSet(); return ((((ro[t] || {})[r]) || [])).map(function (n) { return String(n == null ? '' : n).trim(); }).filter(function (n) { return n && !ab[n]; }); }
 
 /* ---- 진행 상태 파생값 ---- */
 function phase() { return st().phase || 'reg'; }
@@ -551,7 +562,8 @@ var MOCK = (function () {
       if (patch.op !== undefined) s.op = String(patch.op).slice(0, 24);
       s.updatedAt = Date.now(); bump(d); return { ok: true, state: s, rev: d.rev };
     },
-    adminSetProgram: function (pin, prog) { if (!isObj(prog)) return fail('프로그램 형식 오류'); var d = load(); d.program = mergeProgram(prog); var js = JSON.stringify(d.program); if (js.length > LIMIT.program) return fail('프로그램 설정이 너무 큽니다 (' + js.length + '자)'); bump(d); return { ok: true, program: d.program, rev: d.rev }; },
+    adminSetAbsent: function (pin, names) { if (!Array.isArray(names)) return fail('불참 명단 형식 오류'); var d = load(); var p = mergeProgram(d.program); p.absent = names; d.program = mergeProgram(p); bump(d); return { ok: true, program: d.program, rev: d.rev }; },   // v3.17
+    adminSetProgram: function (pin, prog) { if (!isObj(prog)) return fail('프로그램 형식 오류'); var d = load(); var keepAb = mergeProgram(d.program).absent; d.program = mergeProgram(prog); d.program.absent = keepAb; var js = JSON.stringify(d.program); if (js.length > LIMIT.program) return fail('프로그램 설정이 너무 큽니다 (' + js.length + '자)'); bump(d); return { ok: true, program: d.program, rev: d.rev }; },
     adminHideLine: function (pin, id, hidden) { var d = load(); var f = false; d.lines.forEach(function (o) { if (o.id === id) { o.hidden = !!hidden; f = true; } }); if (!f) return fail('글을 찾지 못했습니다'); bump(d); return { ok: true }; },
     adminAnalyze: function (pin) { var d = load(); var ana = analyze(d); d.analysis = ana; d.state.analyzed = true; d.state.analyzedAt = Date.now(); d.state.closed = true; bump(d); return { ok: true, engine: ana.engine, analysis: ana }; },
     adminFillDemo: function (pin) { return fns.mockFillDemo(); },
@@ -676,6 +688,13 @@ function previewHTML() {
   return '<div class="prev"><p class="raw">' + (esc(head) || '<span class="dim">' + L.round + '라운드 기록이 아직 없습니다</span>') + '</p>' +
     '<div class="foot">분석 전 · 15:00 이후 운영진이 분석 실행' + (n ? ' · ' + L.round + '라운드 기록 앞 200자' : '') + '</div></div>';
 }
+/* 이 테이블 · 이 라운드 참가자 이름 (콘솔 「참가자 명단」). 당일 불참자는 줄 그어 「불참」 (v3.17) */
+function peopleHTML() {
+  var all = rosterOf(L.table, L.round, true), ab = absentSet(); var here = all.filter(function (n) { return !ab[n]; });
+  if (!all.length) return '<span class="ph">' + L.round + '라운드 참가자</span><span class="pe">명단이 아직 없습니다 · 운영진 콘솔 「참가자 명단」에서 입력</span>';
+  return '<span class="ph">' + L.round + '라운드 참가자 ' + here.length + '명</span>' + all.map(function (n) { return '<span class="pn' + (ab[n] ? ' off' : '') + '">' + esc(n) + '</span>'; }).join('');
+}
+function updatePeople() { var el = document.getElementById('people'); if (el) { var h = peopleHTML(); if (el.innerHTML !== h) el.innerHTML = h; } }
 function updatePreview() { var w = document.getElementById('prevWrap'); if (w) w.innerHTML = previewHTML(); }
 function renderNow() { var s = st(); var rs = roundState(); document.getElementById('now').innerHTML = '<b>' + nowHM() + '</b>' + esc(phaseLabel()) + (rs ? ' · ' + rs.r + '라운드 ' + rs.left + '분 남음' : '') + (s.closed ? ' · 입력 마감됨' : ''); var el = document.getElementById('strip'); if (el) el.innerHTML = stripHTML(); }
 function render() {
@@ -685,6 +704,7 @@ function render() {
     (FIXED ? '<span class="lock">QR로 고정</span>' : '') + '<span class="tb t' + tp.id + '">주제 ' + tp.id + '</span><b>' + esc(tp.title) + '</b><span style="color:var(--muted)">(' + esc(tp.sub) + ')</span>' +
     '<details class="firstq"' + (firstqOpen ? ' open' : '') + '><summary>퍼실리테이터 첫 질문 보기</summary><p>' + esc((REC_SUBQ[tp.id] || [])[0] || tp.q) + '</p></details></div>' +
     '<div class="rtabs">' + [1, 2].map(function (r) { return '<button data-r="' + r + '" class="' + (rt === r ? 'on' : '') + '">' + r + '라운드 <small>' + phTime('r' + r) + '</small>' + statusChip(r) + '</button>'; }).join('') + '</div>' +
+    '<div class="people" id="people">' + peopleHTML() + '</div>' +
     '<div id="strip">' + stripHTML() + '</div>' +
     '<div class="rec-grid"><section class="card"><h3>' + rt + '라운드 기록<small>들은 이야기를 그대로 · 자동 저장</small></h3>' +
     '<textarea class="note" id="note" maxlength="' + NOTE_MAX + '" placeholder="들은 이야기를 그대로, 길게 적어 주세요. 정리는 운영진이 분석을 실행해 만듭니다">' + esc(x.note) + '</textarea>' +
@@ -716,7 +736,7 @@ startPolling(3000, function () {
   for (var t in local) { [1, 2].forEach(function (r) { if (!local[t].dirty[r]) local[t].records[r] = null; }); }
   var a = document.activeElement; var typing = a && (a.tagName === 'TEXTAREA' || a.tagName === 'INPUT' || a.tagName === 'SELECT');
   if (typing) {
-    renderNow(); updateChips(); if (tableAnalysis(L.table)) updatePreview();
+    renderNow(); updateChips(); updatePeople(); if (tableAnalysis(L.table)) updatePreview();
     /* 커서가 칸에 있어도 내가 고치는 중이 아니면 서버 값으로 칸을 맞춘다(운영진이 비우거나 다른 기기에서 고친 경우). 전엔 옛 글이 칸에 남아 한 글자만 쳐도 옛 글째 다시 저장됐다 (v3.10.4) */
     if (!loc(L.table).dirty[L.round]) { var sv = curRec(L.round); var ne = document.getElementById('note'), we = document.getElementById('wish'); var ch = false;
       if (ne && ne.value !== sv.note) { ne.value = sv.note; ch = true; } if (we && we.value !== sv.wish) { we.value = sv.wish; ch = true; } if (ch) { updateCounts(); updatePreview(); } }

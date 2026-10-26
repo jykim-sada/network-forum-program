@@ -434,7 +434,7 @@ function animateBars() { requestAnimationFrame(function () { document.querySelec
 
 /* ================= 격자 부품: 지도 · 명단 · 현황 · 숫자 타일 · 롤링 띠 ================= */
 function panelTitle(t, s) { return '<div class="pt"><b>' + t + '</b>' + (s ? '<span>' + s + '</span>' : '') + '</div>'; }
-function rosterNames(t, r) { var ro = program().roster || {}; return (((ro[t] || {})[r]) || []).filter(function (n) { return String(n == null ? '' : n).trim(); }); }
+function rosterNames(t, r) { return rosterOf(t, r); }   // 당일 불참자는 빠진다 (v3.17)
 function rosterCount(r) { return TABLES.reduce(function (n, t) { return n + rosterNames(t, r).length; }, 0); }
 function gridRoster(r) {
   return '<div class="g9">' + TABLES.map(function (t) {
@@ -598,7 +598,7 @@ function buildLive(r) {
 /* 패널 내용이 바뀌었는지 보는 서명 — 같으면 다시 그리지 않는다(깜빡임 방지) */
 function panelSig(name, page, r) {
   if (name === 'status') { var now0 = Date.now(); return TABLES.map(function (t) { return recStatus(t, r) + (liveNew[t] ? (now0 - liveNew[t] < 1300 ? 'p' : 'f') : ''); }).join(','); }
-  if (name === 'roster') return JSON.stringify(program().roster || {});
+  if (name === 'roster') return JSON.stringify([program().roster || {}, program().absent || []]);   // 불참 처리도 바로 다시 그린다 (v3.17)
   if (name === 'facts') return JSON.stringify(program().facts || {});
   if (name === 'trend') return page + '|' + JSON.stringify(program().trends || {});
   return '';
