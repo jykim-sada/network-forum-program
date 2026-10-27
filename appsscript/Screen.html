@@ -146,6 +146,12 @@ html,body{margin:0;height:100%;overflow:hidden;background:var(--gg-d);color:var(
 .vbox iframe,.vbox video{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;background:var(--gg-d)}
 .vhint{flex:none;font-size:clamp(12px,1.6vh,16px);color:var(--mut-2)}
 .vbox video{object-fit:contain}
+/* 시네마(v3.18): 오프닝 영상 장은 로고 띠 · 머리 · 꼬리 · 제목 없이 영상만 화면 가득. 16:9 가 아닌 화면에서는 검은 띠 */
+.screen.cinema .brand,.screen.cinema .tri,.screen.cinema .s-head,.screen.cinema .s-foot,.screen.cinema .vid .s-title{display:none}
+.screen.cinema .s-body{padding:0;background:#000}
+.screen.cinema .vid{gap:0}
+.screen.cinema .vbox{border-radius:0;background:#000}
+.screen.cinema .vbox video{background:#000}
 .vplay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:clamp(20px,3vh,36px);background:rgba(7,36,72,.35);cursor:pointer}
 /* 토론 주제 4개 */
 .tp4{flex:1;min-height:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:minmax(0,1fr);gap:clamp(10px,1.4vw,22px)}
@@ -675,7 +681,7 @@ function render() {
   if (cur.type === 'video') {
     var v = P.video || {}; var emb = LOCAL_VIDEO ? '<video id="ovid" playsinline preload="auto" src="' + LOCAL_VIDEO.url + '"></video>' : videoEmbed(v.url);
     head = chip('1부 · 오프닝 영상') + ev(tm + ' · 전환기 중장년의 희·노·애·락');
-    if (emb) body = '<div class="vid"><div class="s-title">' + esc(v.title) + '</div><div class="vwrap" id="vwrap"><div class="vbox" id="vbox">' + emb + '</div></div></div>';
+    if (emb) { body = '<div class="vid"><div class="s-title">' + esc(v.title) + '</div><div class="vwrap" id="vwrap"><div class="vbox" id="vbox">' + emb + '</div></div></div>'; cls = 'vid-full'; }   // 영상이 있으면 화면 가득 (v3.18)
     else if (emb === null) body = '<div class="div"><div class="k">오프닝 영상</div><div class="t">' + esc(v.title) + '</div><div class="m">영상 주소 형식을 확인해 주세요 (YouTube · 드라이브 · mp4)</div></div>';
     else body = '<div class="div"><div class="k">오프닝 영상</div><div class="t">' + esc(v.title) + '</div></div>';
     foot = '<span>1부 시작 · 오프닝 영상</span>' + pageNo;
@@ -779,7 +785,14 @@ function render() {
   if (ph === 'share' && cur.type !== 'end' && cur.type !== 'cloud') foot = '<span>' + (idx + 1) + ' / ' + deck.length + '</span><span>퍼실리테이터 발표 · 겹치면 「같은 의견」으로 넘김</span>';   // 마지막 두 장은 발표 안내 없이
   if (!foot) foot = '<span>' + esc(row[1]) + ' ' + tm + '</span>' + pageNo;
   document.getElementById('screen').innerHTML = frame(head, body, foot, cls);
+  document.getElementById('screen').classList.toggle('cinema', cls === 'vid-full');   // 영상 장: 띠 · 머리 · 꼬리 숨김 (v3.18)
   fitNames(); fitBoxes(); fitOneLine(); fitVideo(); animateBars(); layoutCloud();
+  if (cls === 'vid-full' && LOCAL_VIDEO) autoPlayVideo();   // 영상 장이 새로 뜨면 바로 재생 (v3.18). 콘솔 ▶ ⏸ ⏮ 는 그대로 동작
+}
+/* 영상 장이 뜰 때 자동 재생. 브라우저가 막으면(이 창을 한 번도 클릭 · 키 입력하지 않은 경우) 「화면을 한 번 클릭」 안내를 띄운다 */
+function autoPlayVideo() {
+  var v = document.getElementById('ovid'); if (!v) return;
+  var p = v.play(); if (p && p.catch) p.catch(function () { var box = document.getElementById('vbox'); if (box && !box.querySelector('.vplay')) { var o = document.createElement('div'); o.className = 'vplay'; o.textContent = '▶ 화면을 한 번 클릭하면 재생됩니다'; box.appendChild(o); } });
 }
 /* 「포럼의 키워드」 배치 (v3.11): 비중 큰 말부터 가운데에서 타원 나선을 따라 겹치지 않는 자리에 놓는다. 시드 고정이라 스크린·미리보기·스토리보드가 같은 그림.
    보기 a: 일부 기울임 · b: 수평만, 촘촘히 · c: 알약 칩. 글자 크기는 낱말 수에 맞춰 전체 면적의 약 55% 를 채우도록 자동 조절 */
