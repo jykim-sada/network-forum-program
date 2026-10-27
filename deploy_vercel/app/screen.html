@@ -1025,7 +1025,7 @@ document.getElementById('screen').addEventListener('click', function () {
 });
 
 /* ================= 오프닝 영상 파일 — 이 노트북 브라우저(IndexedDB)에 저장. V 키로 선택 · 콘솔 명령(play/pause/restart)으로 재생 ================= */
-var LOCAL_VIDEO = null, lastVideoCmdAt = 0, videoReported = '';
+var LOCAL_VIDEO = null, lastVideoCmdAt = 0, videoReported = '', lastVidCheck = 0;
 var SCREEN_ID = (function () { try { var k = localStorage.getItem('gwb-screen-id'); if (!k) { k = 's' + Math.random().toString(36).slice(2, 10); localStorage.setItem('gwb-screen-id', k); } return k; } catch (e) { return 's' + Math.random().toString(36).slice(2, 10); } })();   // 이 브라우저의 보고 id — 다른 브라우저(콘솔 미리보기)의 「영상 없음」이 이 노트북의 「준비됨」을 덮지 않게
 function vdb(mode, fn) { return new Promise(function (res, rej) { if (!window.indexedDB) { rej(new Error('저장소 없음')); return; } var rq = indexedDB.open('gwb-video', 1); rq.onupgradeneeded = function () { rq.result.createObjectStore('files'); }; rq.onerror = function () { rej(rq.error); }; rq.onsuccess = function () { var db = rq.result; var tx = db.transaction('files', mode); var r = fn(tx.objectStore('files')); tx.oncomplete = function () { res(r && r.result); db.close(); }; tx.onerror = function () { rej(tx.error); db.close(); }; }; }); }
 function loadLocalVideo() { return vdb('readonly', function (st) { return st.get('opening'); }).then(function (f) { setLocalVideo(f && f.size ? f : null); }).catch(function () { setLocalVideo(null); }); }
@@ -1039,8 +1039,9 @@ function reportScreen() {   // 콘솔에 「영상 준비됨」 표시용 — �
   var info = LOCAL_VIDEO ? { name: LOCAL_VIDEO.name, size: LOCAL_VIDEO.size, dur: LOCAL_VIDEO.dur } : null; var key = JSON.stringify(info); if (key === videoReported) return; videoReported = key;
   try { API.call('screenReport', [{ id: SCREEN_ID, video: info }], function () {}, function () {}); } catch (e) {}
 }
-function clearLocalVideo() { vdb('readwrite', function (st) { st.delete('opening'); }).then(function () { setLocalVideo(null); }).catch(function () {}); }
-function saveLocalVideo(f) { return vdb('readwrite', function (st) { st.put(f, 'opening'); }).then(function () { setLocalVideo(f); }, function (e) { setLocalVideo(f); console.warn('영상 파일을 브라우저에 저장하지 못해 이번 화면에서만 씁니다', e); }); }   // 저장 실패(사생활 모드 등)해도 이 화면에서는 재생
+function notifyVideoFile() { if (BC) { try { BC.postMessage({ type: 'video-file' }); } catch (e) {} } }   // 같은 브라우저의 다른 스크린 탭(LED 창 · 콘솔 미리보기)도 파일을 다시 읽게 (v3.18.1)
+function clearLocalVideo() { vdb('readwrite', function (st) { st.delete('opening'); }).then(function () { setLocalVideo(null); notifyVideoFile(); }).catch(function () {}); }
+function saveLocalVideo(f) { return vdb('readwrite', function (st) { st.put(f, 'opening'); }).then(function () { setLocalVideo(f); notifyVideoFile(); }, function (e) { setLocalVideo(f); console.warn('영상 파일을 브라우저에 저장하지 못해 이번 화면에서만 씁니다', e); }); }   // 저장 실패(사생활 모드 등)해도 이 화면에서는 재생
 document.getElementById('vpick').addEventListener('change', function () { var f = this.files && this.files[0]; this.value = ''; if (f) saveLocalVideo(f); });
 function applyVideoCmd() {
   var c = st().videoCmd; if (!c || !c.at || c.at === lastVideoCmdAt) return; var v = document.getElementById('ovid'); if (!v) return; lastVideoCmdAt = c.at;
@@ -1173,6 +1174,7 @@ function render() {
   if (cur.type === 'live') { if (viewKey !== key) { buildLive(rn); viewKey = key; } patchLive(rn); return; }
   stopLive();
   var P = program(); var row = phRow(ph); var tm = esc(row[2]);
+  if (cur.type === 'video' && !LOCAL_VIDEO && S.screen && S.screen.video && Date.now() - lastVidCheck > 5000) { lastVidCheck = Date.now(); loadLocalVideo(); }   // 서버는 「파일 준비됨」인데 이 탭엔 없음 → 저장소 다시 확인 (v3.18.1)
   if (cur.type === 'video') { var vk = key + '|' + JSON.stringify(P.video || {}) + '|' + (LOCAL_VIDEO ? LOCAL_VIDEO.name + LOCAL_VIDEO.size : ''); if (viewKey === vk) return; viewKey = vk; lastVideoCmdAt = (s.videoCmd || {}).at || 0; } else viewKey = key;   // 영상 장이 새로 뜰 때, 그 전에 보낸 재생 명령은 무시
   var head = '', body = '', foot = '', cls = '';
   var pageNo = '<span>' + (idx + 1) + ' / ' + deck.length + ' · ' + nowHM() + '</span>';
@@ -1358,6 +1360,7 @@ function reconcileSnap(snap) {
 }
 if (BC) BC.onmessage = function (ev) {
   var m = ev && ev.data; if (!m || !S.rev) return;   // 첫 스냅샷 전에는 그리지 않는다
+  if (m.type === 'video-file') { loadLocalVideo(); return; }   // 다른 탭에서 V 로 영상 파일을 넣거나 지움 (v3.18.1)
   if (m.type === 'revert') { if (optimistic) { optimistic = null; clearTimeout(optTimer); optTimer = null; forceRefresh(); } return; }   // 콘솔의 변경이 서버에서 실패 → 바로 서버 상태로
   if (m.type !== 'state' || !m.state) return;
   optimistic = { state: m.state, at: Number(m.at) || nowServer() }; S.state = m.state; render(); applyVideoCmd();
