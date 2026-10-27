@@ -1237,7 +1237,7 @@ function render() {
     foot = '<span>테이블 주제 · 퍼실리테이터 · 기록자 고정 · 참가자만 1회 이동</span><span>' + rosterCount(rn) + '명</span>';
   } else if (cur.type === 'p2div') {
     head = chip('2부');   // 1부 간지와 같게 제목만
-    body = '<div class="div"><div class="t">생애전환기, 희·노·애·락</div></div>';
+    body = '<div class="div"><div class="t">생애전환기, 희·노·애·락</div><div class="s">경험을 나누고, 연결을 만들다</div></div>';   // 부제는 261021 식순의 2부 제목 (v3.19.2)
     foot = '<span>토론 주제 4개 안내</span>' + pageNo;   // 발제 순서 없음 (261021 식순)
   } else if (cur.type === 'topics') {
     head = chip('토론 주제') + ev('4개 주제 · 9개 테이블');
