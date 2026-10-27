@@ -188,7 +188,7 @@ function previewHTML() {
   }
   var n = curRec(L.round).note.trim(); var head = n.slice(0, 200) + (n.length > 200 ? '…' : '');
   return '<div class="prev"><p class="raw">' + (esc(head) || '<span class="dim">' + L.round + '라운드 기록이 아직 없습니다</span>') + '</p>' +
-    '<div class="foot">분석 전 · 15:00 이후 운영진이 분석 실행' + (n ? ' · ' + L.round + '라운드 기록 앞 200자' : '') + '</div></div>';
+    '<div class="foot">분석 전 · 15:05 이후 운영진이 분석 실행' + (n ? ' · ' + L.round + '라운드 기록 앞 200자' : '') + '</div></div>';
 }
 /* 이 테이블 · 이 라운드 참가자 이름 (콘솔 「참가자 명단」). 당일 불참자는 줄 그어 「불참」 (v3.17) */
 function peopleHTML() {
@@ -214,7 +214,7 @@ function render() {
     '<p class="savehint">「저장」을 누르면 이 라운드가 스크린·콘솔에 「작성 완료」로 표시됩니다. 그 뒤에 고치면 다시 「작성 중」이 되니, 다 적은 뒤 한 번 더 눌러 주세요.</p>' +
     '<label class="wish"><span class="lb">경기도·시군에 꼭 전하고 싶은 것 (선택)</span><textarea id="wish" maxlength="' + WISH_MAX + '" placeholder="이 테이블에서 나온 건의·바람을 한두 문장으로">' + esc(x.wish) + '</textarea><small id="wcnt"></small></label></section>' +
     '<aside class="card">' + promptsHTML(tp) + '</aside></div>' +
-    '<section class="card" style="margin-top:12px"><h3>이 테이블 결과 미리보기<small>결과공유 15:20~15:50 스크린 · 읽기 전용</small></h3><div id="prevWrap">' + previewHTML() + '</div></section>';
+    '<section class="card" style="margin-top:12px"><h3>이 테이블 결과 미리보기<small>결과공유 15:25~15:50 스크린 · 읽기 전용</small></h3><div id="prevWrap">' + previewHTML() + '</div></section>';
   renderNow(); updateSaveBar(); updateCounts();
   app.querySelector('#selTable').onchange = function (e) { var n = +e.target.value; if (n === L.table) return; flushSaves(); L.table = n; saveL(); render(); };
   app.querySelectorAll('.rtabs button').forEach(function (b) { b.onclick = function () { L.round = +b.dataset.r; saveL(); render(); }; });

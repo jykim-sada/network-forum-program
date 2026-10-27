@@ -38,7 +38,7 @@ var TOPICS = [
   { id: 4, title: "주행 모드를 '함께 가기'로 전환합니다", sub: '연결과 확장', ask: '우리 모임이 한 걸음 더 나아가려면, 누구와 무엇을 함께해야 할까요?', tables: [8, 9], q: '우리 모임이 지금 필요로 하는 것은 무엇이고, 다른 모임이나 기관과 연결되면 무엇을 함께할 수 있으며, 그 첫 번째 공동 행동은 무엇인가?' }
 ];
 var TT = { 1: 1, 2: 1, 3: 1, 4: 2, 5: 2, 6: 3, 7: 3, 8: 4, 9: 4 };
-var PHASES = ['reg', 'part1', 'p2', 'r1', 'r2', 'collect', 'share', 'close', 'end'];   // p2 = 2부 발제·주제 안내(13:30~13:40)
+var PHASES = ['reg', 'part1', 'p2', 'r1', 'r2', 'collect', 'share', 'close', 'end'];   // p2 = 2부 시작·토론 주제 안내(13:40, 발제 없음)
 var TABLE_COUNT = 9;
 /* 입력 길이 상한 (클라이언트도 같은 값을 쓴다) */
 var LIMIT = { line: 500, note: 6000, wish: 500, dev: 64, id: 40, program: 45000 };
@@ -628,12 +628,12 @@ function adminSetState(pin, patch) {
     var changed = st.phase !== patch.phase;
     st.phase = patch.phase;
     if (changed) { st.slide = 0; st.hold = false; st.holdAt = 0; st.holdTotal = 0; st.slideAt = Date.now(); }   // slideAt: 이 장표가 뜬 서버 시각 = 라운드 화면 순환의 시작점 (v3.16)   // 장표 번호는 단계 안에서 0부터 · 화면 멈춤도 풀리고 멈춤 누계도 0 (v3.16)
-    if (patch.phase === 'r1' || patch.phase === 'r2') { var rn = patch.phase === 'r1' ? 1 : 2; if (changed || patch.restartRound || st.round !== rn) { st.round = rn; st.roundStart = Date.now(); } }
+    if (patch.phase === 'r1' || patch.phase === 'r2') { var rn = patch.phase === 'r1' ? 1 : 2; if (changed || patch.restartRound || st.round !== rn) { st.round = rn; st.roundStart = (rn === 2 && !patch.restartRound) ? 0 : Date.now(); } }   // 2라운드는 이동 안내 장(0)이 먼저라 타이머를 켜지 않고, 진행 화면(1)에 들어갈 때 켠다 (v3.19 · 식순 14:20 이동 → 14:25 토론)
     if (patch.phase === 'collect') st.closed = true;
     if (patch.phase === 'reg' || patch.phase === 'part1' || patch.phase === 'p2') { st.round = 0; st.roundStart = 0; }
   }
   if (patch.restartRound && (st.phase === 'r1' || st.phase === 'r2')) { st.roundStart = Date.now(); st.slideAt = st.roundStart; st.holdTotal = 0; if (st.hold) st.holdAt = st.roundStart; }
-  if (patch.slide !== undefined) { var sl = Number(patch.slide); if (!isInt_(sl, 0, 99)) return { ok: false, error: '장표 번호 오류' }; if (sl !== Number(st.slide)) { setHold_(st, false); st.holdTotal = 0; st.slideAt = Date.now(); } st.slide = sl; }   // 장표가 바뀌면 멈춤이 풀리고 순환은 새 장표가 뜬 시각부터 (v3.16)   // 장표가 바뀌면 화면 멈춤은 풀린다
+  if (patch.slide !== undefined) { var sl = Number(patch.slide); if (!isInt_(sl, 0, 99)) return { ok: false, error: '장표 번호 오류' }; if (sl !== Number(st.slide)) { setHold_(st, false); st.holdTotal = 0; st.slideAt = Date.now(); } st.slide = sl; if (st.phase === 'r2' && sl >= 1 && !st.roundStart) { st.roundStart = Date.now(); st.slideAt = st.roundStart; st.holdTotal = 0; } }   // 2라운드 진행 화면에 처음 들어가는 순간 40분 시작 (v3.19)   // 장표가 바뀌면 멈춤이 풀리고 순환은 새 장표가 뜬 시각부터 (v3.16)   // 장표가 바뀌면 화면 멈춤은 풀린다
   if (patch.same !== undefined) {
     var sm = {};
     if (isObj_(patch.same)) Object.keys(patch.same).slice(0, 40).forEach(function (k) { sm[str_(k, 20)] = !!patch.same[k]; });
@@ -713,7 +713,7 @@ function clearAll_() {
 }
 
 /* ============================================================
- *  분석 (15:00~15:20) — Claude 가 있으면 Claude, 없으면 규칙 기반
+ *  분석 (15:05~15:25) — Claude 가 있으면 Claude, 없으면 규칙 기반
  * ========================================================== */
 function adminAnalyze(pin) {
   checkPin_(pin);

@@ -22,13 +22,14 @@ html,body{margin:0;height:100%;overflow:hidden;background:var(--gg-d);color:var(
 .brand .ttl{color:var(--gg);font-size:clamp(13px,1.8vh,22px);font-weight:600;letter-spacing:-.01em;white-space:nowrap}
 .tri{flex:none;height:clamp(3px,.55vh,7px);display:flex}.tri i{flex:1}
 .tri i:nth-child(1){background:var(--hc-teal)}.tri i:nth-child(2){background:var(--hc-lime)}.tri i:nth-child(3){background:var(--hc-orange)}
-.s-head{flex:none;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:clamp(10px,1.8vh,20px) clamp(24px,3vw,48px);font-size:clamp(16px,2.2vh,24px)}
+.s-head{flex:none;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:clamp(14px,2.4vh,30px) clamp(24px,3vw,48px) clamp(8px,1.4vh,16px);font-size:clamp(16px,2.2vh,24px)}   /* 화면 맨 위에 바로 (로고 띠는 맨 아래, v3.19) */
+.s-head:empty{padding:clamp(8px,1.4vh,16px) 0 0}   /* 머리 글이 없는 장(등록 벽 · 발표자 · 마지막 장)은 여백만 조금 */
 .s-head .chip{background:#fff;color:var(--gg);border-radius:.4em;padding:.28em .9em;font-weight:600;font-size:clamp(18px,2.8vh,34px);white-space:nowrap}
 .s-head .ev{color:var(--mut)}
 .s-head .hl{display:flex;align-items:center;gap:12px;min-width:0}
-.s-body{flex:1;padding:clamp(16px,2.6vh,36px) clamp(26px,4vw,64px) clamp(20px,3vh,40px);display:flex;flex-direction:column;justify-content:center;position:relative;min-height:0}
+.s-body{flex:1;padding:clamp(8px,1.4vh,18px) clamp(26px,4vw,64px) clamp(30px,6.5vh,80px);display:flex;flex-direction:column;justify-content:center;position:relative;min-height:0}   /* 아래 여백을 크게: LED 아래쪽은 단상에 가려 글이 위쪽에 모이도록 (v3.19) */
 .s-body.pos-top{justify-content:flex-start}.s-body.pos-middle{justify-content:center}.s-body.pos-bottom{justify-content:flex-end}
-.s-foot{flex:none;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:clamp(8px,1.4vh,12px) clamp(24px,3vw,48px);background:rgba(7,36,72,.75);font-size:clamp(14px,2vh,18px);color:var(--mut)}
+.s-foot{flex:none;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:clamp(6px,1vh,12px) clamp(24px,3vw,48px);font-size:clamp(14px,2vh,18px);color:var(--mut)}   /* 어두운 띠 배경 없이 — 바로 아래 흰 로고 띠가 꼬리 (v3.19) */
 .s-topic{display:inline-block;padding:5px 14px;border-radius:.4em;font-size:clamp(24px,3.4vh,38px);font-weight:700;margin-bottom:20px;align-self:flex-start}
 .s-topic.t1{background:var(--hc-teal);color:var(--gg-d)}.s-topic.t2{background:var(--hc-lime);color:var(--gg-d)}.s-topic.t3{background:var(--hc-orange);color:var(--gg-d)}.s-topic.t4{background:var(--hc-deep);color:#fff}
 .s-topic.pre{background:rgba(255,255,255,.14);color:#fff}
@@ -37,7 +38,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:var(--gg-d);color:var(
 .s-one::before{content:"“";color:#fff;margin-right:6px}.s-one::after{content:"”";color:#fff;margin-left:6px}
 .s-points{margin:0 0 clamp(14px,2.2vh,28px);padding-left:1.4em;font-size:clamp(22px,min(2.8vw,3.4vh),36px);line-height:1.45}
 .s-points li{margin-bottom:.25em}.s-points li::marker{color:var(--teal-b);font-weight:700}
-.s-note{font-size:clamp(22px,min(2.8vw,3.4vh),36px);line-height:1.5;margin:0;white-space:pre-wrap;overflow-wrap:anywhere;max-height:58vh;overflow:hidden}
+.s-note{font-size:clamp(22px,min(2.8vw,3.4vh),36px);line-height:1.5;margin:0;white-space:pre-wrap;overflow-wrap:anywhere;max-height:50vh;overflow:hidden}   /* v3.19: 본문이 짧아져 50vh */
 .s-cols{display:grid;grid-template-columns:1fr 1fr;gap:36px}
 /* 테이블 정리 장: 한 문장 · 핵심(최대 6) · 경기도에 바라는 것. 글이 많으면 --fit 으로 줄여 한 장에 (v3.9.3) */
 .tbl-fit{--fit:1;flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;justify-content:center}
@@ -97,6 +98,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:var(--gg-d);color:var(
 .cloud.f-word .cw{border:2px solid currentColor;border-radius:.32em;padding:.1em .38em;text-shadow:none}.cloud.f-word .cw.group{border-width:3px}   /* 낱말마다 제 색 테두리 */
 /* 간지(1부·2부·마무리·폐회) */
 .div{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:clamp(10px,2vh,24px)}
+.div,.gone,.spk{padding-bottom:clamp(44px,11vh,130px)}   /* 가운데 정렬 장(간지 · 인사말 · 발표자)은 글을 더 위로 — LED 아래쪽이 단상에 가림 (v3.19) */
 .div .k{font-size:clamp(20px,3vh,36px);color:var(--teal-b);letter-spacing:.1em;font-weight:700}
 .div .t{font-size:clamp(48px,6.4vw,108px);font-weight:700;letter-spacing:-.03em;line-height:1.15;color:#fff;text-wrap:balance}
 .div .s{font-size:clamp(26px,3.6vh,44px);color:var(--orange-b);font-weight:700}
@@ -354,7 +356,7 @@ var ROUND_MIN = 40;
 /* 옛 기본 문구(v3.2 까지). 서버에 이 값 그대로 저장돼 있으면 새 기본값으로 바꿔 읽는다 */
 var LEGACY_PHOTO_TITLE = '중장년 네트워크 포럼', LEGACY_CLOSE_TEXT = '오늘 나온 이야기는 PDF로 정리해 경기도 정책 기초자료로 전달합니다.\n16:00 폐회';
 /* 진행 단계 9개 — [키, 이름, 시간]. PHASES 는 키 배열(Code.gs 와 같음) */
-var PH = [['reg', '등록', '12:00~12:30'], ['part1', '1부', '12:30~13:30'], ['p2', '2부 발제', '13:30~13:40'], ['r1', '토론 1라운드', '13:40~14:20'], ['r2', '토론 2라운드', '14:20~15:00'], ['collect', '휴식·취합', '15:00~15:20'], ['share', '결과공유', '15:20~15:50'], ['close', '마무리', '15:50~16:00'], ['end', '폐회', '16:00']];
+var PH = [['reg', '등록', '12:00~12:30'], ['part1', '1부', '12:30~13:40'], ['p2', '2부 시작', '13:40'], ['r1', '토론 1라운드', '13:40~14:20'], ['r2', '토론 2라운드', '14:25~15:05'], ['collect', '휴식·취합', '15:05~15:25'], ['share', '결과공유', '15:25~15:50'], ['close', '마무리', '15:50~16:00'], ['end', '폐회', '16:00']];   // 261021 식순(10/27 수정본): 휴식 13:25~13:40 · 2부 13:40 시작(발제 없음) · 이동 14:20~14:25 (v3.19)
 var PHASES = PH.map(function (p) { return p[0]; });
 var TABLES = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 var WALL_PAGE = 12, WALL_ROTATE_MS = 1000;
@@ -447,12 +449,12 @@ function predictState(s, patch) {
   var st = JSON.parse(JSON.stringify(s || {})); patch = patch || {}; var now = nowServer();
   if (patch.phase !== undefined && PHASES.indexOf(patch.phase) >= 0) {
     var changed = st.phase !== patch.phase; st.phase = patch.phase; if (changed) { st.slide = 0; st.hold = false; st.holdAt = 0; st.holdTotal = 0; st.slideAt = now; }
-    if (patch.phase === 'r1' || patch.phase === 'r2') { var rn = patch.phase === 'r1' ? 1 : 2; if (changed || patch.restartRound || st.round !== rn) { st.round = rn; st.roundStart = now; } }
+    if (patch.phase === 'r1' || patch.phase === 'r2') { var rn = patch.phase === 'r1' ? 1 : 2; if (changed || patch.restartRound || st.round !== rn) { st.round = rn; st.roundStart = (rn === 2 && !patch.restartRound) ? 0 : now; } }   // 2라운드 타이머는 진행 화면(1)에 들어갈 때 (v3.19)
     if (patch.phase === 'collect') st.closed = true;
     if (patch.phase === 'reg' || patch.phase === 'part1' || patch.phase === 'p2') { st.round = 0; st.roundStart = 0; }
   }
   if (patch.restartRound && (st.phase === 'r1' || st.phase === 'r2')) { st.roundStart = now; st.slideAt = now; st.holdTotal = 0; if (st.hold) st.holdAt = now; }
-  if (patch.slide !== undefined) { var sl = Number(patch.slide); if (sl >= 0 && sl <= 99 && sl === Math.floor(sl)) { if (sl !== Number(st.slide)) { setHold(st, false, now); st.holdTotal = 0; st.slideAt = now; } st.slide = sl; } }
+  if (patch.slide !== undefined) { var sl = Number(patch.slide); if (sl >= 0 && sl <= 99 && sl === Math.floor(sl)) { if (sl !== Number(st.slide)) { setHold(st, false, now); st.holdTotal = 0; st.slideAt = now; } st.slide = sl; if (st.phase === 'r2' && sl >= 1 && !st.roundStart) { st.roundStart = now; st.slideAt = now; st.holdTotal = 0; } } }
   if (patch.toggleSame !== undefined) { var k2 = String(patch.toggleSame).slice(0, 20); if (!st.same || typeof st.same !== 'object') st.same = {}; st.same[k2] = !st.same[k2]; }
   if (patch.closed !== undefined) st.closed = !!patch.closed;
   if (patch.forceWall !== undefined) st.forceWall = !!patch.forceWall;
@@ -791,12 +793,12 @@ var MOCK = (function () {
       if (patch.phase !== undefined) {
         if (PHASES.indexOf(patch.phase) < 0) return fail('단계 값 오류');
         var changed = s.phase !== patch.phase; s.phase = patch.phase; if (changed) { s.slide = 0; s.hold = false; s.holdAt = 0; s.holdTotal = 0; s.slideAt = Date.now(); }
-        if (patch.phase === 'r1' || patch.phase === 'r2') { var rn = patch.phase === 'r1' ? 1 : 2; if (changed || patch.restartRound || s.round !== rn) { s.round = rn; s.roundStart = Date.now(); } }
+        if (patch.phase === 'r1' || patch.phase === 'r2') { var rn = patch.phase === 'r1' ? 1 : 2; if (changed || patch.restartRound || s.round !== rn) { s.round = rn; s.roundStart = (rn === 2 && !patch.restartRound) ? 0 : Date.now(); } }   // 2라운드 타이머는 진행 화면(1)에 들어갈 때 (v3.19)
         if (patch.phase === 'collect') s.closed = true;
         if (patch.phase === 'reg' || patch.phase === 'part1' || patch.phase === 'p2') { s.round = 0; s.roundStart = 0; }
       }
       if (patch.restartRound && (s.phase === 'r1' || s.phase === 'r2')) { s.roundStart = Date.now(); s.slideAt = s.roundStart; s.holdTotal = 0; if (s.hold) s.holdAt = s.roundStart; }
-      if (patch.slide !== undefined) { var sl = Number(patch.slide); if (!isInt(sl, 0, 99)) return fail('장표 번호 오류'); if (sl !== Number(s.slide)) { setHold(s, false, Date.now()); s.holdTotal = 0; s.slideAt = Date.now(); } s.slide = sl; }
+      if (patch.slide !== undefined) { var sl = Number(patch.slide); if (!isInt(sl, 0, 99)) return fail('장표 번호 오류'); if (sl !== Number(s.slide)) { setHold(s, false, Date.now()); s.holdTotal = 0; s.slideAt = Date.now(); } s.slide = sl; if (s.phase === 'r2' && sl >= 1 && !s.roundStart) { s.roundStart = Date.now(); s.slideAt = s.roundStart; s.holdTotal = 0; } }
       if (patch.same !== undefined) { var sm = {}; if (isObj(patch.same)) Object.keys(patch.same).slice(0, 40).forEach(function (k) { sm[String(k).slice(0, 20)] = !!patch.same[k]; }); s.same = sm; }
       if (patch.toggleSame !== undefined) { var k2 = String(patch.toggleSame).slice(0, 20); if (!isObj(s.same)) s.same = {}; s.same[k2] = !s.same[k2]; }
       if (patch.closed !== undefined) s.closed = !!patch.closed;
@@ -846,8 +848,8 @@ var MOCK = (function () {
 <input type="file" id="vpick" accept="video/*" style="display:none">   <!-- 화면에 보이는 운영진 안내 문구는 v3.9.1 에서 삭제. V 키(영상 파일 선택)·F 키(전체화면)는 그대로 동작 -->
 <script>
 /* ================= 공통 틀 ================= */
-var BRAND = brandHTML('brand');
-var frame = function (head, body, foot, bodyCls) { return BRAND + '<div class="s-head">' + head + '</div><div class="s-body' + (bodyCls ? ' ' + bodyCls : '') + '">' + body + '</div><div class="s-foot">' + foot + '</div>'; };
+var BRAND = (function () { var h = brandHTML('brand'), i = h.indexOf('<div class="tri">'); return i < 0 ? h : h.slice(i) + h.slice(0, i); })();   // 삼색 선 → 흰 로고 띠 순서: 화면 맨 아래에 붙는다 (v3.19)
+var frame = function (head, body, foot, bodyCls) { return '<div class="s-head">' + head + '</div><div class="s-body' + (bodyCls ? ' ' + bodyCls : '') + '">' + body + '</div><div class="s-foot">' + foot + '</div>' + BRAND; };   // 로고 띠는 맨 아래 — LED 아래쪽은 단상에 가리므로 글은 위로, 띠는 아래로 (v3.19)
 var ev = function (s) { return '<span class="ev">' + s + '</span>'; }, chip = function (s) { return '<span class="chip">' + s + '</span>'; };
 var REDUCED = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 var TCLS = function (t) { return 't' + TT[t]; };
@@ -1186,7 +1188,7 @@ function render() {
   if (cur.type === 'video' && !LOCAL_VIDEO && S.screen && S.screen.video && Date.now() - lastVidCheck > 5000) { lastVidCheck = Date.now(); loadLocalVideo(); }   // 서버는 「파일 준비됨」인데 이 탭엔 없음 → 저장소 다시 확인 (v3.18.1)
   if (cur.type === 'video') { var vk = key + '|' + JSON.stringify(P.video || {}) + '|' + (LOCAL_VIDEO ? LOCAL_VIDEO.name + LOCAL_VIDEO.size : ''); if (viewKey === vk) return; viewKey = vk; lastVideoCmdAt = (s.videoCmd || {}).at || 0; } else viewKey = key;   // 영상 장이 새로 뜰 때, 그 전에 보낸 재생 명령은 무시
   var head = '', body = '', foot = '', cls = '';
-  var pageNo = '<span>' + (idx + 1) + ' / ' + deck.length + ' · ' + nowHM() + '</span>';
+  var pageNo = '<span>' + nowHM() + '</span>';   // 장 번호(n / N)는 v3.19 에서 삭제 — 시각만
   var c = P.close || {};
   if (cur.type === 'video') {
     var v = P.video || {}; var emb = LOCAL_VIDEO ? '<video id="ovid" playsinline preload="auto"' + (IN_FRAME ? ' muted' : '') + ' src="' + LOCAL_VIDEO.url + '"></video>' : videoEmbed(v.url);   // 미리보기(iframe)는 음소거 (v3.18.2)
@@ -1197,11 +1199,11 @@ function render() {
     foot = '<span>1부 시작 · 오프닝 영상</span>' + pageNo;
   } else if (cur.type === 'greet') {   // 한 장에 한 명: 종류 표시 → 소속(크게) → 이름(더 크게). 설명 줄 없음 (v3.3)
     var G = greetList(); var gi = Number(cur.i) || 0; var g = G[gi] || null; var kind = g ? greetKind(g, gi) : 'greet'; var kl = kind === 'cong' ? '축사' : '인사말';
-    head = chip(kl) + ev('1부' + (G.length > 1 ? ' · ' + (gi + 1) + ' / ' + G.length : ''));
+    head = chip(kl);   // 오른쪽 위 「1부 · n / N」 삭제 (v3.19)
     body = '<div class="gone ' + kind + '"><div class="gk">' + kl + '</div>' +
       (g ? '<div class="go' + (g.title ? '' : ' none') + '">' + (esc(g.title) || '소속 미입력') + '</div><div class="gn">' + (esc(g.name) || '<span class="none">이름 미입력</span>') + '</div>'
          : '<div class="go none">명단 미입력 · 콘솔 「프로그램」 탭에서 입력</div>') + '</div>';
-    foot = '<span>' + kl + (G.length ? ' ' + (gi + 1) + ' / ' + G.length : '') + '</span>' + pageNo;
+    foot = '<span></span>' + pageNo;
   } else if (cur.type === 'p1div') {
     head = chip('1부');   // 오른쪽 위 시간 없음
     body = '<div class="div"><div class="t">전환기 중장년의 희·노·애·락</div><div class="s">생애전환기에 마주한 세 사람의 이야기</div></div>';   // 제목만 (가운데 「1부」·「당사자 사례 발표」 줄 삭제)
@@ -1210,10 +1212,10 @@ function render() {
     var SP = P.speakers || []; var si = Number(cur.i) || 0; var sp = SP[si] || {};
     head = '';   // 위쪽 글 없음 — 제목(한 줄)과 이름만
     body = '<div class="spk"><p class="spk-t" data-fit1>' + esc(sp.title || '') + '</p><div class="spk-n">' + (esc(sp.name) || '<span class="none">이름 미입력</span>') + '</div></div>';
-    foot = '<span>발표 ' + (si + 1) + ' / ' + SP.length + ' · 1인 10분 내외</span>' + pageNo;
+    foot = '<span>1인 10분 내외</span>' + pageNo;
   } else if (cur.type === 'break') {   // 다과 안내 (1부 · 1라운드 좌석 안내 다음 장, v3.15)
     var bT = 'style="--t0:-' + ((Date.now() % 3600000) / 1000).toFixed(2) + 's"';   // 다시 그려도 김 움직임이 끊기지 않게 시계에 맞춘 위상
-    head = chip('잠시 휴식') + ev('2부 13:30 시작');
+    head = chip('잠시 휴식') + ev('2부 13:40 시작');   // 261021 식순: 휴식 13:25~13:40 (v3.19)
     body = '<div class="brkb-bg" aria-hidden="true"></div>' +
       '<div class="brkb" ' + bT + '><div class="brkb-tx">' +
         '<div class="brkb-t" data-fit1>잠시 <span class="brkb-u">쉬어 가세요' + "<svg class=\"brkb-ul\" viewBox=\"0 0 300 24\" preserveAspectRatio=\"none\" aria-hidden=\"true\"><path d=\"M4 15C52 7 98 6 150 11S252 19 296 9\" fill=\"none\"/></svg>" + '</span></div>' +
@@ -1230,13 +1232,13 @@ function render() {
     foot = '<span></span><span>' + nowHM() + '</span>';
   } else if (cur.type === 'seat' || cur.type === 'move') {
     var mv = cur.type === 'move';
-    head = chip(rn + '라운드 ' + (mv ? '이동 안내' : '좌석 안내')) + ev(mv ? '14:20~15:00 · 2라운드' : '13:40 토론 시작 · 1라운드');
+    head = chip(rn + '라운드 ' + (mv ? '이동 안내' : '좌석 안내')) + ev(mv ? '14:25~15:05 · 2라운드' : '13:40 토론 시작 · 1라운드');
     body = '<div class="lead">명찰의 ' + rn + '라운드 번호로 ' + (mv ? '이동해' : '앉아') + ' 주세요</div>' + gridRoster(rn);
-    foot = '<span>테이블 주제 · 퍼실리테이터 · 기록자 고정 · 참가자만 1회 이동</span><span>' + rosterCount(rn) + '명 · ' + (idx + 1) + ' / ' + deck.length + '</span>';
+    foot = '<span>테이블 주제 · 퍼실리테이터 · 기록자 고정 · 참가자만 1회 이동</span><span>' + rosterCount(rn) + '명</span>';
   } else if (cur.type === 'p2div') {
     head = chip('2부');   // 1부 간지와 같게 제목만
     body = '<div class="div"><div class="t">생애전환기, 희·노·애·락</div></div>';
-    foot = '<span>발제 후 토론 주제 4개 안내</span>' + pageNo;
+    foot = '<span>토론 주제 4개 안내</span>' + pageNo;   // 발제 순서 없음 (261021 식순)
   } else if (cur.type === 'topics') {
     head = chip('토론 주제') + ev('4개 주제 · 9개 테이블');
     body = '<div class="tp4">' + TOPICS.map(function (tp) { return '<div class="tpc t' + tp.id + '"><div class="k">주제 ' + tp.id + ' · ' + esc(tp.sub) + '</div><h3>' + keepQuoted(tp.title) + '</h3>' + (tp.ask ? '<div class="sub">' + esc(tp.ask) + '</div>' : '') + '<div class="tb">테이블 ' + tp.tables.join(' · ') + ' · ' + esc(HALL[tp.tables[0]]) + '</div></div>'; }).join('') + '</div>';
@@ -1254,7 +1256,7 @@ function render() {
     head = chip('결과 공유') + ev('오늘의 한줄 묶음 ' + ((Number(cur.i) || 0) + 1) + ' · 대표 글'); body = onelineGroupHTML(Number(cur.i) || 0);
   } else if (cur.type === 'table') {
     var t = Number(cur.t) || 1, tp1 = topicOf(t), a = tableAnalysis(t);
-    head = chip('결과 공유') + ev('테이블 ' + t + ' / 9 · 퍼실리테이터 발표 2분');
+    head = chip('결과 공유') + ev('테이블 ' + t + ' · 퍼실리테이터 발표 2분');
     var tag = '<span class="s-topic t' + tp1.id + '">테이블 ' + t + ' · 주제 ' + tp1.id + ' ' + esc(tp1.title) + ' (' + esc(tp1.sub) + ')</span>';
     if (a) {
       var pts = (a.points || []).filter(Boolean).slice(0, 6);   // 8명의 이야기 — 최대 6개 (v3.9.3)
@@ -1292,7 +1294,7 @@ function render() {
     body = heroHTML() + '<div class="div"><div class="t">고맙습니다</div></div>';   // 아래 문구는 v3.9.7 에서 삭제
     foot = '<span></span><span>' + nowHM() + '</span>';
   }
-  if (ph === 'share' && cur.type !== 'end' && cur.type !== 'cloud') foot = '<span>' + (idx + 1) + ' / ' + deck.length + '</span><span>퍼실리테이터 발표 · 겹치면 「같은 의견」으로 넘김</span>';   // 마지막 두 장은 발표 안내 없이
+  if (ph === 'share' && cur.type !== 'end' && cur.type !== 'cloud') foot = '<span>퍼실리테이터 발표 · 겹치면 「같은 의견」으로 넘김</span>' + pageNo;   // 마지막 두 장은 발표 안내 없이
   if (!foot) foot = '<span>' + esc(row[1]) + ' ' + tm + '</span>' + pageNo;
   document.getElementById('screen').innerHTML = frame(head, body, foot, cls);
   document.getElementById('screen').classList.toggle('cinema', cls === 'vid-full');   // 영상 장: 띠 · 머리 · 꼬리 숨김 (v3.18)

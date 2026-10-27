@@ -17,7 +17,7 @@ var ROUND_MIN = 40;
 /* 옛 기본 문구(v3.2 까지). 서버에 이 값 그대로 저장돼 있으면 새 기본값으로 바꿔 읽는다 */
 var LEGACY_PHOTO_TITLE = '중장년 네트워크 포럼', LEGACY_CLOSE_TEXT = '오늘 나온 이야기는 PDF로 정리해 경기도 정책 기초자료로 전달합니다.\n16:00 폐회';
 /* 진행 단계 9개 — [키, 이름, 시간]. PHASES 는 키 배열(Code.gs 와 같음) */
-var PH = [['reg', '등록', '12:00~12:30'], ['part1', '1부', '12:30~13:30'], ['p2', '2부 발제', '13:30~13:40'], ['r1', '토론 1라운드', '13:40~14:20'], ['r2', '토론 2라운드', '14:20~15:00'], ['collect', '휴식·취합', '15:00~15:20'], ['share', '결과공유', '15:20~15:50'], ['close', '마무리', '15:50~16:00'], ['end', '폐회', '16:00']];
+var PH = [['reg', '등록', '12:00~12:30'], ['part1', '1부', '12:30~13:40'], ['p2', '2부 시작', '13:40'], ['r1', '토론 1라운드', '13:40~14:20'], ['r2', '토론 2라운드', '14:25~15:05'], ['collect', '휴식·취합', '15:05~15:25'], ['share', '결과공유', '15:25~15:50'], ['close', '마무리', '15:50~16:00'], ['end', '폐회', '16:00']];   // 261021 식순(10/27 수정본): 휴식 13:25~13:40 · 2부 13:40 시작(발제 없음) · 이동 14:20~14:25 (v3.19)
 var PHASES = PH.map(function (p) { return p[0]; });
 var TABLES = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 var WALL_PAGE = 12, WALL_ROTATE_MS = 1000;
@@ -110,12 +110,12 @@ function predictState(s, patch) {
   var st = JSON.parse(JSON.stringify(s || {})); patch = patch || {}; var now = nowServer();
   if (patch.phase !== undefined && PHASES.indexOf(patch.phase) >= 0) {
     var changed = st.phase !== patch.phase; st.phase = patch.phase; if (changed) { st.slide = 0; st.hold = false; st.holdAt = 0; st.holdTotal = 0; st.slideAt = now; }
-    if (patch.phase === 'r1' || patch.phase === 'r2') { var rn = patch.phase === 'r1' ? 1 : 2; if (changed || patch.restartRound || st.round !== rn) { st.round = rn; st.roundStart = now; } }
+    if (patch.phase === 'r1' || patch.phase === 'r2') { var rn = patch.phase === 'r1' ? 1 : 2; if (changed || patch.restartRound || st.round !== rn) { st.round = rn; st.roundStart = (rn === 2 && !patch.restartRound) ? 0 : now; } }   // 2라운드 타이머는 진행 화면(1)에 들어갈 때 (v3.19)
     if (patch.phase === 'collect') st.closed = true;
     if (patch.phase === 'reg' || patch.phase === 'part1' || patch.phase === 'p2') { st.round = 0; st.roundStart = 0; }
   }
   if (patch.restartRound && (st.phase === 'r1' || st.phase === 'r2')) { st.roundStart = now; st.slideAt = now; st.holdTotal = 0; if (st.hold) st.holdAt = now; }
-  if (patch.slide !== undefined) { var sl = Number(patch.slide); if (sl >= 0 && sl <= 99 && sl === Math.floor(sl)) { if (sl !== Number(st.slide)) { setHold(st, false, now); st.holdTotal = 0; st.slideAt = now; } st.slide = sl; } }
+  if (patch.slide !== undefined) { var sl = Number(patch.slide); if (sl >= 0 && sl <= 99 && sl === Math.floor(sl)) { if (sl !== Number(st.slide)) { setHold(st, false, now); st.holdTotal = 0; st.slideAt = now; } st.slide = sl; if (st.phase === 'r2' && sl >= 1 && !st.roundStart) { st.roundStart = now; st.slideAt = now; st.holdTotal = 0; } } }
   if (patch.toggleSame !== undefined) { var k2 = String(patch.toggleSame).slice(0, 20); if (!st.same || typeof st.same !== 'object') st.same = {}; st.same[k2] = !st.same[k2]; }
   if (patch.closed !== undefined) st.closed = !!patch.closed;
   if (patch.forceWall !== undefined) st.forceWall = !!patch.forceWall;
@@ -454,12 +454,12 @@ var MOCK = (function () {
       if (patch.phase !== undefined) {
         if (PHASES.indexOf(patch.phase) < 0) return fail('단계 값 오류');
         var changed = s.phase !== patch.phase; s.phase = patch.phase; if (changed) { s.slide = 0; s.hold = false; s.holdAt = 0; s.holdTotal = 0; s.slideAt = Date.now(); }
-        if (patch.phase === 'r1' || patch.phase === 'r2') { var rn = patch.phase === 'r1' ? 1 : 2; if (changed || patch.restartRound || s.round !== rn) { s.round = rn; s.roundStart = Date.now(); } }
+        if (patch.phase === 'r1' || patch.phase === 'r2') { var rn = patch.phase === 'r1' ? 1 : 2; if (changed || patch.restartRound || s.round !== rn) { s.round = rn; s.roundStart = (rn === 2 && !patch.restartRound) ? 0 : Date.now(); } }   // 2라운드 타이머는 진행 화면(1)에 들어갈 때 (v3.19)
         if (patch.phase === 'collect') s.closed = true;
         if (patch.phase === 'reg' || patch.phase === 'part1' || patch.phase === 'p2') { s.round = 0; s.roundStart = 0; }
       }
       if (patch.restartRound && (s.phase === 'r1' || s.phase === 'r2')) { s.roundStart = Date.now(); s.slideAt = s.roundStart; s.holdTotal = 0; if (s.hold) s.holdAt = s.roundStart; }
-      if (patch.slide !== undefined) { var sl = Number(patch.slide); if (!isInt(sl, 0, 99)) return fail('장표 번호 오류'); if (sl !== Number(s.slide)) { setHold(s, false, Date.now()); s.holdTotal = 0; s.slideAt = Date.now(); } s.slide = sl; }
+      if (patch.slide !== undefined) { var sl = Number(patch.slide); if (!isInt(sl, 0, 99)) return fail('장표 번호 오류'); if (sl !== Number(s.slide)) { setHold(s, false, Date.now()); s.holdTotal = 0; s.slideAt = Date.now(); } s.slide = sl; if (s.phase === 'r2' && sl >= 1 && !s.roundStart) { s.roundStart = Date.now(); s.slideAt = s.roundStart; s.holdTotal = 0; } }
       if (patch.same !== undefined) { var sm = {}; if (isObj(patch.same)) Object.keys(patch.same).slice(0, 40).forEach(function (k) { sm[String(k).slice(0, 20)] = !!patch.same[k]; }); s.same = sm; }
       if (patch.toggleSame !== undefined) { var k2 = String(patch.toggleSame).slice(0, 20); if (!isObj(s.same)) s.same = {}; s.same[k2] = !s.same[k2]; }
       if (patch.closed !== undefined) s.closed = !!patch.closed;
