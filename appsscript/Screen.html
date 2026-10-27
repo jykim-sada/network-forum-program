@@ -795,7 +795,14 @@ function render() {
 /* 영상 장이 뜰 때 자동 재생. 브라우저가 막으면(이 창을 한 번도 클릭 · 키 입력하지 않은 경우) 「화면을 한 번 클릭」 안내를 띄운다 */
 function autoPlayVideo() {
   var v = document.getElementById('ovid'); if (!v) return;
-  var p = v.play(); if (p && p.catch) p.catch(function () { var box = document.getElementById('vbox'); if (box && !box.querySelector('.vplay')) { var o = document.createElement('div'); o.className = 'vplay'; o.textContent = '▶ 화면을 한 번 클릭하면 재생됩니다'; box.appendChild(o); } });
+  var at = Number(st().slideAt) || 0, T0 = at ? at + 1500 : 0;   // 시작 시각 = 영상 장이 뜬 서버 시각 + 1.5초. 모든 화면(콘솔 미리보기 · LED · 두 홀)이 같은 순간에 시작 (v3.18.3)
+  var go = function () {
+    if (!document.contains(v)) return;   // 그 사이 다른 장으로 넘어감
+    var now = nowServer(); if (T0 && now < T0) { setTimeout(go, Math.min(1500, T0 - now)); return; }
+    if (T0) { var pos = (now - T0) / 1000; if (pos > 0.5 && pos < (v.duration || 1e9) - 1) { try { v.currentTime = pos; } catch (e) {} } }   // 늦게 연 화면은 같은 위치부터
+    var p = v.play(); if (p && p.catch) p.catch(function () { var box = document.getElementById('vbox'); if (box && !box.querySelector('.vplay')) { var o = document.createElement('div'); o.className = 'vplay'; o.textContent = '▶ 화면을 한 번 클릭하면 재생됩니다'; box.appendChild(o); } });
+  };
+  if (v.readyState >= 2) go(); else { var once = function () { v.removeEventListener('loadeddata', once); go(); }; v.addEventListener('loadeddata', once); }
 }
 /* 「포럼의 키워드」 배치 (v3.11): 비중 큰 말부터 가운데에서 타원 나선을 따라 겹치지 않는 자리에 놓는다. 시드 고정이라 스크린·미리보기·스토리보드가 같은 그림.
    보기 a: 일부 기울임 · b: 수평만, 촘촘히 · c: 알약 칩. 글자 크기는 낱말 수에 맞춰 전체 면적의 약 55% 를 채우도록 자동 조절 */
