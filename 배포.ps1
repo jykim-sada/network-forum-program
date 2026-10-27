@@ -28,6 +28,7 @@ if (-not $SkipVercel) {
   if (Test-Path (Join-Path $root "스크린_스토리보드.html")) { Copy-Item (Join-Path $root "스크린_스토리보드.html") (Join-Path $dv "storyboard.html") -Force }   # /storyboard (첫 화면 / 은 안내 페이지, v3.12.2)
   if (Test-Path (Join-Path $root "스크린_스토리보드.pdf")) { Copy-Item (Join-Path $root "스크린_스토리보드.pdf") (Join-Path $dv "storyboard.pdf") -Force }
   if (Test-Path (Join-Path $root "네트워크_포럼_운영프로그램_시뮬레이션.html")) { New-Item -ItemType Directory -Force (Join-Path $dv "sim") | Out-Null; Copy-Item (Join-Path $root "네트워크_포럼_운영프로그램_시뮬레이션.html") (Join-Path $dv "sim\index.html") -Force }
+  Set-Content -LiteralPath (Join-Path $dv "version.txt") -Value ((Get-Date -Format "yyyy-MM-dd HH:mm") + "  " + $Message) -Encoding UTF8   # 매 배포마다 deploy_vercel 에 흔적을 남겨 마지막 커밋이 항상 deploy_vercel 을 건드리게 — Vercel 의 건너뛰기 규칙(HEAD^..HEAD)이 여러 커밋 푸시에서 배포를 빠뜨리던 문제 (v3.18.5)
   Push-Location $dv
   # v3.15: Vercel 프로젝트 Root Directory 가 deploy_vercel 이라(GitHub 연동) 이 폴더에서 CLI 로 올리면 "deploy_vercel/deploy_vercel 없음"으로 실패한다.
   #        그래서 CLI 배포는 하지 않고, 아래 GitHub 푸시를 Vercel 이 받아 자동 배포한다(Deployments 기록은 Actions 「Record Vercel deployment」).
