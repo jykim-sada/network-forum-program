@@ -405,10 +405,17 @@ function devId() { try { var d = localStorage.getItem('gwb-dev'); if (!d) { d = 
 function pageUrl(name) { if (CFG.site) return CFG.site.replace(/\/$/, '') + '/' + (name === 'start' ? 'app' : name); if (CFG.url) return CFG.url + '?page=' + name; var f = { start: 'Start', phone: 'Phone', screen: 'Screen', recorder: 'Recorder', admin: 'Admin', print: 'Print' }[name]; return (f || 'Start') + '.html'; }   // CFG.site: Vercel 에서 띄운 화면(짧은 주소) (v3.12)
 function pageUrlWith(name, q) { var u = pageUrl(name); return u + (u.indexOf('?') >= 0 ? '&' : '?') + q; }   // 예: pageUrlWith('recorder', 'no=3')
 function brandHTML(cls) { return '<div class="' + (cls || 'ciband') + '"><img class="gg" src="' + (CFG.logoGG || '') + '" alt="경기도"><img class="hc" src="' + (CFG.logoHC || '') + '" alt="경기 중장년 행복캠퍼스"><span class="sp"></span><span class="ttl">' + esc(EVENT.name) + ' · ' + esc(EVENT.date) + '</span></div><div class="tri"><i></i><i></i><i></i></div>'; }
+/* QR 라이브러리(페이지 머리의 cdnjs)를 못 받았으면 다른 CDN 으로 4초마다 다시 받아 보고, 받히는 대로 그린다 (v3.18.4). 행사장 인터넷이 특정 CDN 을 막아도 QR 이 뜨게 */
+var QR_SRC = ['https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js', 'https://unpkg.com/qrcodejs@1.0.0/qrcode.min.js', 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'], qrTry = 0, qrLoading = false;
 function qrInto(el, url, size) {
   el.innerHTML = '';
   if (window.QRCode) { try { new QRCode(el, { text: url, width: size, height: size, colorDark: '#000', colorLight: '#fff', correctLevel: QRCode.CorrectLevel.M }); return true; } catch (e) {} }
-  el.innerHTML = '<div style="width:' + size + 'px;height:' + size + 'px;display:flex;align-items:center;justify-content:center;background:#fff;color:#333;font-size:12px;text-align:center;padding:8px;border-radius:6px">QR 라이브러리를<br>불러오지 못했습니다</div>';
+  el.innerHTML = '<div style="width:' + size + 'px;height:' + size + 'px;display:flex;align-items:center;justify-content:center;background:#fff;color:#333;font-size:13px;text-align:center;padding:8px;border-radius:6px">QR 준비 중…<br>잠시만 기다려 주세요</div>';
+  if (!qrLoading) {
+    qrLoading = true; var sc = document.createElement('script'); sc.src = QR_SRC[qrTry % QR_SRC.length] + '?r=' + qrTry; qrTry++;
+    var again = function () { qrLoading = false; if (document.contains(el)) { if (window.QRCode) qrInto(el, url, size); else setTimeout(function () { if (document.contains(el)) qrInto(el, url, size); }, 4000); } };
+    sc.onload = again; sc.onerror = again; document.head.appendChild(sc);
+  }
   return false;
 }
 
@@ -1168,6 +1175,7 @@ var viewKey = '';   // 지금 그려져 있는 장표 키(단계/번호/타입).
 function render() {
   var s = st(); var ph = phase(); var deck = deckFor(ph) || []; var idx = Math.max(0, Math.min(Number(s.slide) || 0, Math.max(0, deck.length - 1)));
   var cur = curSlide() || deck[idx] || { type: 'end' };
+  if (cur.type !== 'video') document.getElementById('screen').classList.remove('cinema');   // 영상 장을 벗어나면 전체화면 모드 해제 — 벽 · 진행 화면은 아래에서 먼저 return 하므로 여기서 (v3.18.4)
   if (ph === 'reg' || s.forceWall || cur.type === 'wall') { stopLive(); if (!wallBuilt) buildWall(); patchWall(); viewKey = 'wall'; return; }
   wallBuilt = false;
   var key = ph + '/' + idx + '/' + cur.type;
