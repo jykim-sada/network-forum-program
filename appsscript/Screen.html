@@ -100,6 +100,10 @@ html,body{margin:0;height:100%;overflow:hidden;background:var(--gg-d);color:var(
 /* 간지(1부·2부·마무리·폐회) */
 .div{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:clamp(10px,2vh,24px)}
 .div,.gone,.spk{padding-bottom:clamp(44px,11vh,130px)}   /* 가운데 정렬 장(간지 · 인사말 · 발표자)은 글을 더 위로 — LED 아래쪽이 단상에 가림 (v3.19) */
+.s-body .gone,.s-body .spk{justify-content:flex-start;padding-top:clamp(8px,2vh,28px);padding-bottom:0}
+.s-body .spk{padding-top:clamp(20px,5vh,60px)}   /* 발표자 장은 머리 글이 없어 조금 더 띄움 */   /* v3.19.4: 인사말·축사·발표자는 위쪽 정렬 — 사용자 요청(20% 더 위로) */
+.gone .gk{display:none}   /* 본문 안 「인사말/축사」 표시는 위 칩과 같은 내용이라 숨김 → 그만큼 더 위로 (v3.19.4) */
+.end-slide .wall-hero .wh-t{font-size:calc(clamp(56px,9.2vh,116px) * var(--fit,1))}.end-slide .wall-hero .wh-s{font-size:clamp(30px,5vh,62px);margin-top:.3em}   /* 마지막 장 「고맙습니다」의 위 두 줄(제목 · 슬로건)을 키움 — 사용자 요청 (v3.19.4) */
 .div .k{font-size:clamp(20px,3vh,36px);color:var(--teal-b);letter-spacing:.1em;font-weight:700}
 .div .t{font-size:clamp(48px,6.4vw,108px);font-weight:700;letter-spacing:-.03em;line-height:1.15;color:#fff;text-wrap:balance}
 .div .s{font-size:clamp(26px,3.6vh,44px);color:var(--orange-b);font-weight:700}
@@ -786,7 +790,7 @@ function render() {
     foot = '<span></span><span>' + nowHM() + '</span>';
   } else {   // end: 결과공유 마지막 장 · 폐회 — 맨 위 행사 제목 + 슬로건, 가운데 「고맙습니다」 (위쪽 칩·단계 글은 v3.9.6 에서 삭제)
     head = '';
-    body = heroHTML() + '<div class="div"><div class="t">고맙습니다</div></div>';   // 아래 문구는 v3.9.7 에서 삭제
+    body = heroHTML() + '<div class="div"><div class="t">고맙습니다</div></div>'; cls = 'end-slide';   // 마지막 장은 맨 위 제목·슬로건을 더 크게 (v3.19.4)   // 아래 문구는 v3.9.7 에서 삭제
     foot = '<span></span><span>' + nowHM() + '</span>';
   }
   if (ph === 'share' && cur.type !== 'end' && cur.type !== 'cloud') foot = '<span>퍼실리테이터 발표 · 겹치면 「같은 의견」으로 넘김</span>' + pageNo;   // 마지막 두 장은 발표 안내 없이
