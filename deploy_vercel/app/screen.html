@@ -29,7 +29,8 @@ html,body{margin:0;height:100%;overflow:hidden;background:var(--gg-d);color:var(
 .s-head .hl{display:flex;align-items:center;gap:12px;min-width:0}
 .s-body{flex:1;padding:clamp(8px,1.4vh,18px) clamp(26px,4vw,64px) clamp(30px,6.5vh,80px);display:flex;flex-direction:column;justify-content:center;position:relative;min-height:0}   /* 아래 여백을 크게: LED 아래쪽은 단상에 가려 글이 위쪽에 모이도록 (v3.19) */
 .s-body.pos-top{justify-content:flex-start}.s-body.pos-middle{justify-content:center}.s-body.pos-bottom{justify-content:flex-end}
-.s-foot{flex:none;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:clamp(6px,1vh,12px) clamp(24px,3vw,48px);font-size:clamp(14px,2vh,18px);color:var(--mut)}   /* 어두운 띠 배경 없이 — 바로 아래 흰 로고 띠가 꼬리 (v3.19) */
+.s-foot{flex:none;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:clamp(6px,1vh,12px) clamp(24px,3vw,48px);font-size:clamp(14px,2vh,18px);color:var(--mut)}
+.s-foot,#wPage,.col-top .s-timeline{display:none}   /* v3.19.3: 아래 꼬리줄(안내 문구·시각) · 등록 벽 「전체 N개 · 천천히 흐르며…」 · 취합 화면 1·2·3 단계 표시 삭제 — 사용자 요청(필요 없는 것 정리). 요소와 id(wClock·lvInfo)는 남겨 코드가 그대로 돈다 */   /* 어두운 띠 배경 없이 — 바로 아래 흰 로고 띠가 꼬리 (v3.19) */
 .s-topic{display:inline-block;padding:5px 14px;border-radius:.4em;font-size:clamp(24px,3.4vh,38px);font-weight:700;margin-bottom:20px;align-self:flex-start}
 .s-topic.t1{background:var(--hc-teal);color:var(--gg-d)}.s-topic.t2{background:var(--hc-lime);color:var(--gg-d)}.s-topic.t3{background:var(--hc-orange);color:var(--gg-d)}.s-topic.t4{background:var(--hc-deep);color:#fff}
 .s-topic.pre{background:rgba(255,255,255,.14);color:#fff}
