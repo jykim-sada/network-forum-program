@@ -538,7 +538,7 @@ var LOCAL_VIDEO = null, lastVideoCmdAt = 0, videoReported = '', lastVidCheck = 0
 var IN_FRAME = (function () { try { return window.self !== window.top; } catch (e) { return true; } })();   // 콘솔 「스크린 미리보기」 안이면 영상은 음소거 (v3.18.2)
 var SOUND_OFF = (function () { try { return sessionStorage.getItem('gwb-mute') === '1'; } catch (e) { return false; } })();   // 이 창만 음소거(M 키, 새로 고쳐도 유지 · 창마다 따로) (v3.19.6)
 function muteBadge() { var b = document.getElementById('muteBadge'); if (!b) { b = document.createElement('div'); b.id = 'muteBadge'; b.textContent = '🔇 이 창 소리 끔 · M 키로 다시 켬'; b.style.cssText = 'position:fixed;right:14px;bottom:14px;z-index:9;background:rgba(0,0,0,.62);color:#fff;font-size:15px;padding:7px 12px;border-radius:8px;pointer-events:none'; document.body.appendChild(b); } b.style.display = SOUND_OFF ? 'block' : 'none'; }
-function applyMute() { var v = document.getElementById('ovid'); if (v) v.muted = IN_FRAME || SOUND_OFF; muteBadge(); }
+function applyMute() { var v = document.getElementById('ovid'); if (v) { v.muted = IN_FRAME || SOUND_OFF; v.volume = IN_FRAME ? 0 : 1; } muteBadge(); }   // muted 는 속성값으로 직접(innerHTML 의 muted 속성은 크로미움이 무시할 때가 있음) · 미리보기는 volume 0 까지 (v3.19.7)
 function toggleMute() { SOUND_OFF = !SOUND_OFF; try { sessionStorage.setItem('gwb-mute', SOUND_OFF ? '1' : '0'); } catch (e) {} applyMute(); }
 var SCREEN_ID = (function () { try { var k = localStorage.getItem('gwb-screen-id'); if (!k) { k = 's' + Math.random().toString(36).slice(2, 10); localStorage.setItem('gwb-screen-id', k); } return k; } catch (e) { return 's' + Math.random().toString(36).slice(2, 10); } })();   // 이 브라우저의 보고 id — 다른 브라우저(콘솔 미리보기)의 「영상 없음」이 이 노트북의 「준비됨」을 덮지 않게
 function vdb(mode, fn) { return new Promise(function (res, rej) { if (!window.indexedDB) { rej(new Error('저장소 없음')); return; } var rq = indexedDB.open('gwb-video', 1); rq.onupgradeneeded = function () { rq.result.createObjectStore('files'); }; rq.onerror = function () { rej(rq.error); }; rq.onsuccess = function () { var db = rq.result; var tx = db.transaction('files', mode); var r = fn(tx.objectStore('files')); tx.oncomplete = function () { res(r && r.result); db.close(); }; tx.onerror = function () { rej(tx.error); db.close(); }; }; }); }
@@ -804,7 +804,7 @@ function render() {
   document.getElementById('screen').classList.toggle('cinema', cls === 'vid-full');   // 영상 장: 띠 · 머리 · 꼬리 숨김 (v3.18)
   fitNames(); fitBoxes(); fitOneLine(); fitVideo(); animateBars(); layoutCloud();
   if (cls === 'vid-full' && LOCAL_VIDEO) autoPlayVideo();
-  muteBadge();   // 이 창이 음소거면 표시 (v3.19.6)   // 영상 장이 새로 뜨면 바로 재생 (v3.18). 콘솔 ▶ ⏸ ⏮ 는 그대로 동작
+  applyMute();   // 영상 요소가 새로 만들어질 때마다 음소거 상태를 속성값으로 다시 적용 (v3.19.7)   // 영상 장이 새로 뜨면 바로 재생 (v3.18). 콘솔 ▶ ⏸ ⏮ 는 그대로 동작
 }
 /* 영상 장이 뜰 때 자동 재생. 브라우저가 막으면(이 창을 한 번도 클릭 · 키 입력하지 않은 경우) 「화면을 한 번 클릭」 안내를 띄운다 */
 function autoPlayVideo() {
@@ -814,6 +814,7 @@ function autoPlayVideo() {
     if (!document.contains(v)) return;   // 그 사이 다른 장으로 넘어감
     var now = nowServer(); if (T0 && now < T0) { setTimeout(go, Math.min(1500, T0 - now)); return; }
     if (T0) { var pos = (now - T0) / 1000; if (pos > 0.5 && pos < (v.duration || 1e9) - 1) { try { v.currentTime = pos; } catch (e) {} } }   // 늦게 연 화면은 같은 위치부터
+    v.muted = IN_FRAME || SOUND_OFF; if (IN_FRAME) v.volume = 0;   // 재생 직전에 한 번 더 (v3.19.7)
     var p = v.play(); if (p && p.catch) p.catch(function () { var box = document.getElementById('vbox'); if (box && !box.querySelector('.vplay')) { var o = document.createElement('div'); o.className = 'vplay'; o.textContent = '▶ 화면을 한 번 클릭하면 재생됩니다'; box.appendChild(o); } });
   };
   if (v.readyState >= 2) go(); else { var once = function () { v.removeEventListener('loadeddata', once); go(); }; v.addEventListener('loadeddata', once); }
