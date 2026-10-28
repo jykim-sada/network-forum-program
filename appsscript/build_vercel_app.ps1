@@ -15,8 +15,8 @@ $common = [System.IO.File]::ReadAllText((Join-Path $root 'Common.html'), $utf8)
 $execUrl = 'https://script.google.com/macros/s/' + $DeployId + '/exec'
 $site = $Site.TrimEnd('/')
 $event = '{"name":"경기도 중장년 네트워크 포럼","date":"2026. 10. 28.(수)","time":"12:30~16:00","place":"고양 한양문고 (데미안홀·한강홀)"}'
-$titles = @{ Start = '안내'; Phone = '오늘의 한줄'; Screen = '스크린'; Recorder = '기록자'; Admin = '운영진 콘솔'; Print = '테이블 QR 인쇄' }
-foreach ($name in @('Start', 'Phone', 'Screen', 'Recorder', 'Admin', 'Print')) {
+$titles = @{ Start = '안내'; Phone = '오늘의 한줄'; Screen = '스크린'; Recorder = '기록자'; Admin = '운영진 콘솔'; Print = '테이블 QR 인쇄'; Digest = '스크린 자료집' }
+foreach ($name in @('Start', 'Phone', 'Screen', 'Recorder', 'Admin', 'Print', 'Digest')) {
   $src = Join-Path $root ($name + '.html')
   if (-not (Test-Path -LiteralPath $src)) { continue }
   $html = [System.IO.File]::ReadAllText($src, $utf8)

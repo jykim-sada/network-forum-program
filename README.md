@@ -12,6 +12,7 @@
 | 기록자 (N = 테이블 1~9) | https://gg-forum-screen.vercel.app/recorder?no=1 | 테이블 태블릿 9대 |
 | 참가자 · 오늘의 한줄 (N = 테이블) | https://gg-forum-screen.vercel.app/phone?t=1 | 참가자 휴대폰 (QR) |
 | 테이블 QR 인쇄 | https://gg-forum-screen.vercel.app/print | 행사 전 1회 |
+| 스크린 자료집 (스크린 화면 그대로 한 장씩 · 영상 제외) | https://gg-forum-screen.vercel.app/digest | 행사 뒤 열람 · PDF /digest.pdf · 글판 /app/digest |
 | 스크린 스토리보드 (43컷) | https://gg-forum-screen.vercel.app/storyboard | 검토용 |
 | 스토리보드 PDF | https://gg-forum-screen.vercel.app/storyboard.pdf | 검토용 |
 | 전체 시뮬레이션 (서버 없이 흉내) | https://gg-forum-screen.vercel.app/sim | 검토용 |

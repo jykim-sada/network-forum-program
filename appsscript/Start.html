@@ -51,6 +51,7 @@ main{padding:24px 0 60px}
   <div class="grid">
     <div class="card pub"><span class="lbl">참가자 쪽</span><h2>참가자 · 오늘의 한줄</h2><span class="who">참가자 전원 · 본인 스마트폰 · 등록 12:00~12:30 · QR</span><p>나만의 노트처럼 보이는 페이지. 이름 없이 자유롭게 적고 "스크린에 올리기"를 누르면 바로 스크린에 뜹니다. 여러 번 적을 수 있습니다.</p><a id="lPhone" target="_blank">참가자 페이지 열기</a></div>
     <div class="card pub"><span class="lbl">참가자 쪽</span><h2>스크린</h2><span class="who">데미안홀 LED · 운영진 콘솔이 제어 · 조작 버튼 없음</span><p>등록 때는 QR과 실시간 한 줄 벽(최신 강조 + 1초 순환), 토론 때는 라운드 타이머와 테이블 배치, 결과공유에는 발표 슬라이드. F 키 전체화면.</p><a id="lScreen" target="_blank">스크린 열기</a></div>
+    <div class="card pub"><span class="lbl">참가자 쪽</span><h2>스크린 자료집</h2><span class="who">참가자 · 경기도 담당자 · 행사 뒤 열람 · PDF 저장</span><p>행사 중 스크린에 띄웠던 화면을 등록부터 마지막 장까지 그대로 한 장씩 담은 자료집(오프닝 영상 제외). 브라우저에서 넘겨 보고, 「PDF 내려받기」로 가로 A4 PDF 를 받습니다. 같은 내용을 글로 읽는 판(/app/digest)도 있습니다.</p><a id="lDigest" target="_blank">스크린 자료집 열기</a></div>
     <div class="card adm"><span class="lbl">운영진 쪽</span><h2>기록자</h2><span class="who">테이블당 1명(9명) · 태블릿/노트북 · 14:00~15:15</span><p>토론 내용을 자유롭게 기록하면 분석 후 테이블 발표 슬라이드가 만들어집니다. 경기도·시군에 꼭 전하고 싶은 것은 따로 한 칸에 적습니다.</p><a id="lRec" target="_blank">기록자 페이지 열기</a></div>
     <div class="card adm"><span class="lbl">운영진 쪽</span><h2>운영진 콘솔 (백단)</h2><span class="who">운영진 1~2명 · 노트북 · PIN 필요</span><p>진행 단계·라운드 타이머·스크린 장표 제어, 프로그램(1부 내용)·참가자 명단, 오늘의 한줄 집계·숨김, 테이블 현황, 입력 마감 → 분석 실행, 결과 확인, PDF 보고서.</p><a id="lAdmin" target="_blank">운영진 콘솔 열기</a></div>
     <div class="card adm"><span class="lbl">운영진 쪽</span><h2>테이블 QR 인쇄</h2><span class="who">운영진 · 행사 전날 A4 세로 9장 인쇄 · 각 테이블에 비치</span><p>테이블 번호·주제·홀과 함께 그 테이블용 오늘의 한줄 QR이 한 장에 담깁니다. 참가자가 이 QR로 올린 글은 테이블 번호와 함께 모입니다.</p><a id="lPrint" target="_blank">인쇄 페이지 열기</a></div>
@@ -63,7 +64,7 @@ main{padding:24px 0 60px}
       <li><b>14:00</b> 「2부 시작」 → 2부 간지·토론 주제 4개 장을 「다음」으로 넘기며 주제를 안내합니다.</li>
       <li><b>14:00</b> 「토론 1라운드」를 누르면 35분 타이머가 시작됩니다. 기록자 9명이 토론 내용을 기록합니다. <b>14:35</b> 「토론 2라운드」 → 이동 안내 장(참가자만 이동, 타이머 꺼짐) → <b>14:40</b> 「다음」으로 진행 화면에 들어가면 새 35분 타이머가 시작됩니다.</li>
       <li><b>15:15</b> 「휴식·취합」 → 입력이 마감되고, 콘솔에서 「분석 실행」을 누릅니다. 테이블별 정리가 자동으로 만들어집니다.</li>
-      <li><b>15:35</b> 「결과공유」 → 콘솔의 이전·다음·「같은 의견」으로 스크린 장표를 넘깁니다. <b>16:00</b> 「마무리」, 보고서 PDF 저장.</li>
+      <li><b>15:35</b> 「결과공유」 → 콘솔의 이전·다음·「같은 의견」으로 스크린 장표를 넘깁니다. <b>16:00</b> 「마무리」, 보고서 PDF 저장. 행사 뒤에는 「스크린 자료집」에서 스크린에 나온 내용을 PDF로 저장합니다.</li>
     </ol>
     <p class="note" id="note"></p>
   </div>
@@ -71,8 +72,8 @@ main{padding:24px 0 60px}
 <script>
 document.getElementById('brand').innerHTML = brandHTML('ciband');
 document.getElementById('sub').textContent = EVENT.date + ' ' + EVENT.time + ' · ' + EVENT.place;
-if (CFG.site) { var sb = String(CFG.site).replace(/[/]+$/, ''); document.getElementById('note').insertAdjacentHTML('afterend', '<p class="note">스크린 스토리보드: <a href="' + sb + '/storyboard">' + sb + '/storyboard</a> · 전체 시뮬레이션: <a href="' + sb + '/sim">' + sb + '/sim</a> · 스토리보드 PDF: <a href="' + sb + '/storyboard.pdf">' + sb + '/storyboard.pdf</a></p>'); }   // Vercel 웹앱 첫 화면일 때만 (v3.12.2)
-['Phone:phone', 'Screen:screen', 'Rec:recorder', 'Admin:admin', 'Print:print'].forEach(function (x) { var p = x.split(':'); document.getElementById('l' + p[0]).href = pageUrl(p[1]); });
+if (CFG.site) { var sb = String(CFG.site).replace(/[/]+$/, ''); document.getElementById('note').insertAdjacentHTML('afterend', '<p class="note">스크린 스토리보드: <a href="' + sb + '/storyboard">' + sb + '/storyboard</a> · 전체 시뮬레이션: <a href="' + sb + '/sim">' + sb + '/sim</a> · 스토리보드 PDF: <a href="' + sb + '/storyboard.pdf">' + sb + '/storyboard.pdf</a> · 스크린 자료집 PDF: <a href="' + sb + '/digest.pdf">' + sb + '/digest.pdf</a></p>'); }   // Vercel 웹앱 첫 화면일 때만 (v3.12.2)
+['Phone:phone', 'Screen:screen', 'Digest:digest', 'Rec:recorder', 'Admin:admin', 'Print:print'].forEach(function (x) { var p = x.split(':'); document.getElementById('l' + p[0]).href = pageUrl(p[1]); });
 document.getElementById('urlPhone').textContent = pageUrl('phone');
 qrInto(document.getElementById('qr'), pageUrl('phone'), 150);
 document.getElementById('note').textContent = API.isLocal ? '지금은 로컬 미리보기입니다. 같은 브라우저의 창끼리만 연동되고 데이터는 이 PC 브라우저 안에만 있습니다. 실제 운영은 Apps Script 웹앱 주소로 접속합니다.' : '데이터는 이 스프레드시트의 「한줄」「기록」「분석」「설정」 시트에 쌓입니다. 운영진 PIN 은 시트 메뉴 「발표보드 > 운영진 PIN 설정」에서 바꿉니다.';

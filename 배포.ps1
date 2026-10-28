@@ -27,6 +27,7 @@ if (-not $SkipVercel) {
   & (Join-Path $app "build_vercel_app.ps1") -DeployId $deployId | Out-Null   # 콘솔·스크린·기록자·참가자·인쇄·안내 페이지 → deploy_vercel\app (v3.12)
   if (Test-Path (Join-Path $root "스크린_스토리보드.html")) { Copy-Item (Join-Path $root "스크린_스토리보드.html") (Join-Path $dv "storyboard.html") -Force }   # /storyboard (첫 화면 / 은 안내 페이지, v3.12.2)
   if (Test-Path (Join-Path $root "스크린_스토리보드.pdf")) { Copy-Item (Join-Path $root "스크린_스토리보드.pdf") (Join-Path $dv "storyboard.pdf") -Force }
+  if (Test-Path (Join-Path $root "스크린_자료집_20261028.pdf")) { Copy-Item (Join-Path $root "스크린_자료집_20261028.pdf") (Join-Path $dv "digest.pdf") -Force }   # /digest.pdf — 스크린 자료집(스크린에 나온 내용, 행사 뒤 생성) (v3.20)
   if (Test-Path (Join-Path $root "네트워크_포럼_운영프로그램_시뮬레이션.html")) { New-Item -ItemType Directory -Force (Join-Path $dv "sim") | Out-Null; Copy-Item (Join-Path $root "네트워크_포럼_운영프로그램_시뮬레이션.html") (Join-Path $dv "sim\index.html") -Force }
   Set-Content -LiteralPath (Join-Path $dv "version.txt") -Value ((Get-Date -Format "yyyy-MM-dd HH:mm") + "  " + $Message) -Encoding UTF8   # 매 배포마다 deploy_vercel 에 흔적을 남겨 마지막 커밋이 항상 deploy_vercel 을 건드리게 — Vercel 의 건너뛰기 규칙(HEAD^..HEAD)이 여러 커밋 푸시에서 배포를 빠뜨리던 문제 (v3.18.5)
   Push-Location $dv

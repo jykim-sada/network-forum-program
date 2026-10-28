@@ -136,7 +136,7 @@ function doGet(e) {
     if (!API_GET_FNS[gfn]) return ContentService.createTextOutput(JSON.stringify({ __error: 'GET 은 읽기(getSnapshot)만 됩니다. 쓰기는 POST 로' })).setMimeType(ContentService.MimeType.JSON);
     return apiCall_(gfn, e.parameter.args);
   }
-  var map = { start: ['Start', '안내'], phone: ['Phone', '오늘의 한줄'], screen: ['Screen', '스크린'], recorder: ['Recorder', '기록자'], admin: ['Admin', '운영진 콘솔'], print: ['Print', '테이블 QR 인쇄'] };
+  var map = { start: ['Start', '안내'], phone: ['Phone', '오늘의 한줄'], screen: ['Screen', '스크린'], recorder: ['Recorder', '기록자'], admin: ['Admin', '운영진 콘솔'], print: ['Print', '테이블 QR 인쇄'], digest: ['Digest', '스크린 자료집'] };   // digest: 스크린에 나온 내용을 글로 묶은 자료집(읽기 전용, v3.20)
   if (!map[page]) page = 'start';
   ensureSheets_();
   var t = HtmlService.createTemplateFromFile(map[page][0]);

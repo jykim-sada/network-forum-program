@@ -7,7 +7,7 @@ New-Item -ItemType Directory -Force $out | Out-Null
 $utf8 = New-Object System.Text.UTF8Encoding($false)
 $common = [System.IO.File]::ReadAllText((Join-Path $root 'Common.html'), $utf8)
 $event = '{"name":"경기도 중장년 네트워크 포럼","date":"2026. 10. 28.(수)","time":"12:30~16:00","place":"고양 한양문고 (데미안홀·한강홀)"}'
-foreach ($name in @('Start', 'Phone', 'Screen', 'Recorder', 'Admin', 'Print')) {
+foreach ($name in @('Start', 'Phone', 'Screen', 'Recorder', 'Admin', 'Print', 'Digest')) {
   $src = Join-Path $root ($name + '.html')
   if (-not (Test-Path -LiteralPath $src)) { continue }
   $html = [System.IO.File]::ReadAllText($src, $utf8)
