@@ -719,7 +719,7 @@ function render() {
     foot = '<span>1인 10분 내외</span>' + pageNo;
   } else if (cur.type === 'break') {   // 다과 안내 (1부 · 1라운드 좌석 안내 다음 장, v3.15)
     var bT = 'style="--t0:-' + ((Date.now() % 3600000) / 1000).toFixed(2) + 's"';   // 다시 그려도 김 움직임이 끊기지 않게 시계에 맞춘 위상
-    head = chip('잠시 휴식') + ev('2부 13:40 시작');   // 261021 식순: 휴식 13:25~13:40 (v3.19)
+    head = chip('잠시 휴식') + ev('2부 14:00 시작');   // 261021 식순: 휴식 13:25~13:40 (v3.19)
     body = '<div class="brkb-bg" aria-hidden="true"></div>' +
       '<div class="brkb" ' + bT + '><div class="brkb-tx">' +
         '<div class="brkb-t" data-fit1>잠시 <span class="brkb-u">쉬어 가세요' + "<svg class=\"brkb-ul\" viewBox=\"0 0 300 24\" preserveAspectRatio=\"none\" aria-hidden=\"true\"><path d=\"M4 15C52 7 98 6 150 11S252 19 296 9\" fill=\"none\"/></svg>" + '</span></div>' +
@@ -736,7 +736,7 @@ function render() {
     foot = '<span></span><span>' + nowHM() + '</span>';
   } else if (cur.type === 'seat' || cur.type === 'move') {
     var mv = cur.type === 'move';
-    head = chip(rn + '라운드 ' + (mv ? '이동 안내' : '좌석 안내')) + ev(mv ? '14:25~15:05 · 2라운드' : '13:40 토론 시작 · 1라운드');
+    head = chip(rn + '라운드 ' + (mv ? '이동 안내' : '좌석 안내')) + ev(mv ? '14:40~15:15 · 2라운드' : '14:00 토론 시작 · 1라운드');
     body = '<div class="lead">명찰의 ' + rn + '라운드 번호로 ' + (mv ? '이동해' : '앉아') + ' 주세요</div>' + gridRoster(rn);
     foot = '<span>테이블 주제 · 퍼실리테이터 · 기록자 고정 · 참가자만 1회 이동</span><span>' + rosterCount(rn) + '명</span>';
   } else if (cur.type === 'p2div') {
