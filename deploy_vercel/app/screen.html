@@ -1017,10 +1017,10 @@ function tickerHTML() {
 function videoEmbed(url) {
   url = String(url == null ? '' : url).trim(); if (!url) return '';
   var m = url.match(/youtu\.be\/([A-Za-z0-9_-]{6,})/) || url.match(/youtube\.com\/(?:watch\?(?:[^#]*&)?v=|embed\/|shorts\/|live\/)([A-Za-z0-9_-]{6,})/);
-  if (m) { var se = ''; var ms = url.match(/[?&](?:start|t)=(\d+)/), me = url.match(/[?&]end=(\d+)/); if (ms) se += '&start=' + ms[1]; if (me) se += '&end=' + me[1]; return '<iframe src="https://www.youtube.com/embed/' + m[1] + '?autoplay=1&rel=0' + (IN_FRAME ? '&mute=1' : '') + se + '" allow="autoplay; fullscreen" allowfullscreen title="오프닝 영상"></iframe>'; }   // 주소의 start·end(초)로 구간 지정
+  if (m) { var se = ''; var ms = url.match(/[?&](?:start|t)=(\d+)/), me = url.match(/[?&]end=(\d+)/); if (ms) se += '&start=' + ms[1]; if (me) se += '&end=' + me[1]; return '<iframe src="https://www.youtube.com/embed/' + m[1] + '?autoplay=1&rel=0' + ((IN_FRAME || SOUND_OFF) ? '&mute=1' : '') + se + '" allow="autoplay; fullscreen" allowfullscreen title="오프닝 영상"></iframe>'; }   // 주소의 start·end(초)로 구간 지정
   m = url.match(/drive\.google\.com\/file\/d\/([A-Za-z0-9_-]+)/) || url.match(/drive\.google\.com\/[^#]*[?&]id=([A-Za-z0-9_-]+)/);
   if (m) return '<iframe src="https://drive.google.com/file/d/' + m[1] + '/preview" allow="autoplay; fullscreen" allowfullscreen title="오프닝 영상"></iframe>';
-  if (/\.(mp4|webm)(\?[^#]*)?$/i.test(url)) return '<video id="ovid" playsinline preload="auto"' + (IN_FRAME ? ' muted' : '') + ' src="' + esc(url) + '"></video>';   // 콘솔 「▶ 재생」으로 시작
+  if (/\.(mp4|webm)(\?[^#]*)?$/i.test(url)) return '<video id="ovid" playsinline preload="auto"' + ((IN_FRAME || SOUND_OFF) ? ' muted' : '') + ' src="' + esc(url) + '"></video>';   // 콘솔 「▶ 재생」으로 시작
   return null;
 }
 /* 16:9 상자를 남은 공간에 맞춘다(가로·세로 중 작은 쪽 기준) */
@@ -1042,6 +1042,10 @@ document.getElementById('screen').addEventListener('click', function () {
 /* ================= 오프닝 영상 파일 — 이 노트북 브라우저(IndexedDB)에 저장. V 키로 선택 · 콘솔 명령(play/pause/restart)으로 재생 ================= */
 var LOCAL_VIDEO = null, lastVideoCmdAt = 0, videoReported = '', lastVidCheck = 0;
 var IN_FRAME = (function () { try { return window.self !== window.top; } catch (e) { return true; } })();   // 콘솔 「스크린 미리보기」 안이면 영상은 음소거 (v3.18.2)
+var SOUND_OFF = (function () { try { return sessionStorage.getItem('gwb-mute') === '1'; } catch (e) { return false; } })();   // 이 창만 음소거(M 키, 새로 고쳐도 유지 · 창마다 따로) (v3.19.6)
+function muteBadge() { var b = document.getElementById('muteBadge'); if (!b) { b = document.createElement('div'); b.id = 'muteBadge'; b.textContent = '🔇 이 창 소리 끔 · M 키로 다시 켬'; b.style.cssText = 'position:fixed;right:14px;bottom:14px;z-index:9;background:rgba(0,0,0,.62);color:#fff;font-size:15px;padding:7px 12px;border-radius:8px;pointer-events:none'; document.body.appendChild(b); } b.style.display = SOUND_OFF ? 'block' : 'none'; }
+function applyMute() { var v = document.getElementById('ovid'); if (v) v.muted = IN_FRAME || SOUND_OFF; muteBadge(); }
+function toggleMute() { SOUND_OFF = !SOUND_OFF; try { sessionStorage.setItem('gwb-mute', SOUND_OFF ? '1' : '0'); } catch (e) {} applyMute(); }
 var SCREEN_ID = (function () { try { var k = localStorage.getItem('gwb-screen-id'); if (!k) { k = 's' + Math.random().toString(36).slice(2, 10); localStorage.setItem('gwb-screen-id', k); } return k; } catch (e) { return 's' + Math.random().toString(36).slice(2, 10); } })();   // 이 브라우저의 보고 id — 다른 브라우저(콘솔 미리보기)의 「영상 없음」이 이 노트북의 「준비됨」을 덮지 않게
 function vdb(mode, fn) { return new Promise(function (res, rej) { if (!window.indexedDB) { rej(new Error('저장소 없음')); return; } var rq = indexedDB.open('gwb-video', 1); rq.onupgradeneeded = function () { rq.result.createObjectStore('files'); }; rq.onerror = function () { rej(rq.error); }; rq.onsuccess = function () { var db = rq.result; var tx = db.transaction('files', mode); var r = fn(tx.objectStore('files')); tx.oncomplete = function () { res(r && r.result); db.close(); }; tx.onerror = function () { rej(tx.error); db.close(); }; }; }); }
 function loadLocalVideo() { return vdb('readonly', function (st) { return st.get('opening'); }).then(function (f) { setLocalVideo(f && f.size ? f : null); }).catch(function () { setLocalVideo(null); }); }
@@ -1197,7 +1201,7 @@ function render() {
   var pageNo = '<span>' + nowHM() + '</span>';   // 장 번호(n / N)는 v3.19 에서 삭제 — 시각만
   var c = P.close || {};
   if (cur.type === 'video') {
-    var v = P.video || {}; var emb = LOCAL_VIDEO ? '<video id="ovid" playsinline preload="auto"' + (IN_FRAME ? ' muted' : '') + ' src="' + LOCAL_VIDEO.url + '"></video>' : videoEmbed(v.url);   // 미리보기(iframe)는 음소거 (v3.18.2)
+    var v = P.video || {}; var emb = LOCAL_VIDEO ? '<video id="ovid" playsinline preload="auto"' + ((IN_FRAME || SOUND_OFF) ? ' muted' : '') + ' src="' + LOCAL_VIDEO.url + '"></video>' : videoEmbed(v.url);   // 미리보기(iframe)는 음소거 (v3.18.2)
     head = chip('1부 · 오프닝 영상') + ev(tm + ' · 전환기 중장년의 희·노·애·락');
     if (emb) { body = '<div class="vid"><div class="s-title">' + esc(v.title) + '</div><div class="vwrap" id="vwrap"><div class="vbox" id="vbox">' + emb + '</div></div></div>'; cls = 'vid-full'; }   // 영상이 있으면 화면 가득 (v3.18)
     else if (emb === null) body = '<div class="div"><div class="k">오프닝 영상</div><div class="t">' + esc(v.title) + '</div><div class="m">영상 주소 형식을 확인해 주세요 (YouTube · 드라이브 · mp4)</div></div>';
@@ -1305,7 +1309,8 @@ function render() {
   document.getElementById('screen').innerHTML = frame(head, body, foot, cls);
   document.getElementById('screen').classList.toggle('cinema', cls === 'vid-full');   // 영상 장: 띠 · 머리 · 꼬리 숨김 (v3.18)
   fitNames(); fitBoxes(); fitOneLine(); fitVideo(); animateBars(); layoutCloud();
-  if (cls === 'vid-full' && LOCAL_VIDEO) autoPlayVideo();   // 영상 장이 새로 뜨면 바로 재생 (v3.18). 콘솔 ▶ ⏸ ⏮ 는 그대로 동작
+  if (cls === 'vid-full' && LOCAL_VIDEO) autoPlayVideo();
+  muteBadge();   // 이 창이 음소거면 표시 (v3.19.6)   // 영상 장이 새로 뜨면 바로 재생 (v3.18). 콘솔 ▶ ⏸ ⏮ 는 그대로 동작
 }
 /* 영상 장이 뜰 때 자동 재생. 브라우저가 막으면(이 창을 한 번도 클릭 · 키 입력하지 않은 경우) 「화면을 한 번 클릭」 안내를 띄운다 */
 function autoPlayVideo() {
@@ -1365,7 +1370,7 @@ function layoutCloud() {
 }
 var cloudShownKey = '';   // 「포럼의 키워드」를 마지막으로 그린 장 키 (처음 뜰 때만 나타나는 효과)
 /* 키: F 전체화면만. ←/→ 이동은 콘솔이 단일 제어 지점이므로 두지 않는다 */
-document.addEventListener('keydown', function (e) { if (e.key === 'v' || e.key === 'V') { if (e.shiftKey) { if (LOCAL_VIDEO) clearLocalVideo(); } else document.getElementById('vpick').click(); return; } if (e.key === 'f' || e.key === 'F') { if (document.fullscreenElement) document.exitFullscreen(); else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen(); } });
+document.addEventListener('keydown', function (e) { if (e.key === 'v' || e.key === 'V') { if (e.shiftKey) { if (LOCAL_VIDEO) clearLocalVideo(); } else document.getElementById('vpick').click(); return; } if (e.key === 'f' || e.key === 'F') { if (document.fullscreenElement) document.exitFullscreen(); else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen(); } if (e.key === 'm' || e.key === 'M') toggleMute(); });   // M: 이 창만 소리 끄기/켜기 (v3.19.6)
 setInterval(function () {   // 1초마다: 진행 화면은 타이머, 휴식·취합 화면은 트렌드 카드 교대
   var ph = phase(); if (st().forceWall) return; var cs = curSlide() || {};
   if ((ph === 'r1' || ph === 'r2') && cs.type === 'live') { render(); return; }
