@@ -69,7 +69,7 @@ var WALL_PAGE = 12, WALL_ROTATE_MS = 1000;
 /* 스크린 벽 표시 방식: 'flow' = 한 줄씩 가로로 길게, 아래에서 올라와 천천히 위로 흐름(깜빡임 없음, 모든 글이 차례로 지나감) / 'static' = 최신 12개 고정 */
 var WALL_MODE = 'flow', WALL_SPEED = 18;   // WALL_SPEED: 초당 픽셀 (클수록 빠름)
 /* 입력 길이 상한 (Code.gs 의 LIMIT 과 같음) */
-var LIMIT = { line: 500, note: 6000, wish: 500, dev: 64, id: 40, program: 45000 };
+var LIMIT = { line: 500, note: 20000, wish: 2000, dev: 64, id: 40, program: 45000 };   // 10/28 현장: 기록 20000자 · 바라는 것 2000자 (v3.19.10)
 
 /* ---- 1부 프로그램·명단·화면 문구 기본값 (Code.gs 의 DEFAULT_PROGRAM 과 같게 유지) ---- */
 var DEFAULT_PROGRAM = {

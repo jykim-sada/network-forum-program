@@ -124,7 +124,7 @@ var WALL_PAGE = 12, WALL_ROTATE_MS = 1000;
 /* 스크린 벽 표시 방식: 'flow' = 한 줄씩 가로로 길게, 아래에서 올라와 천천히 위로 흐름(깜빡임 없음, 모든 글이 차례로 지나감) / 'static' = 최신 12개 고정 */
 var WALL_MODE = 'flow', WALL_SPEED = 18;   // WALL_SPEED: 초당 픽셀 (클수록 빠름)
 /* 입력 길이 상한 (Code.gs 의 LIMIT 과 같음) */
-var LIMIT = { line: 500, note: 6000, wish: 500, dev: 64, id: 40, program: 45000 };
+var LIMIT = { line: 500, note: 20000, wish: 2000, dev: 64, id: 40, program: 45000 };   // 10/28 현장: 기록 20000자 · 바라는 것 2000자 (v3.19.10)
 
 /* ---- 1부 프로그램·명단·화면 문구 기본값 (Code.gs 의 DEFAULT_PROGRAM 과 같게 유지) ---- */
 var DEFAULT_PROGRAM = {
@@ -615,7 +615,7 @@ if (!(FIXED >= 1 && FIXED <= 9)) FIXED = 0;
 var L = { table: FIXED || 1, round: 1 };
 try { var saved = JSON.parse(sessionStorage.getItem('gwb-rec') || '{}'); if (!FIXED && saved.table >= 1 && saved.table <= 9) L.table = saved.table; if (saved.round === 1 || saved.round === 2) L.round = saved.round; } catch (e) {}
 function saveL() { try { sessionStorage.setItem('gwb-rec', JSON.stringify(L)); } catch (e) {} }
-var NOTE_MAX = 6000, WISH_MAX = 500;
+var NOTE_MAX = 20000, WISH_MAX = 2000;   // 10/28 현장: 제한 완화 (v3.19.10)
 /* 주제별 예비 질문(이야기가 멈출 때). 첫 질문은 Common 의 TOPICS[].q 를 그대로 쓴다 */
 var REC_SUBQ = {
   1: ['돌봄 때문에 미루거나 멈춘 것은 무엇이었나요?', '이제 나를 위해 시작한 것, 또는 시작하고 싶은 것은 무엇인가요?', '그 시작에 필요한 것은 무엇인가요? (시간 · 사람 · 돈 · 제도)'],
