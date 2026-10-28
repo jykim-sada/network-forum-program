@@ -14,6 +14,7 @@
     { "source": "/", "headers": [{ "key": "Cache-Control", "value": "no-store" }] },
     { "source": "/app/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store" }] },
     { "source": "/digest.pdf", "headers": [{ "key": "Cache-Control", "value": "no-store" }] },
+    { "source": "/digest_text.pdf", "headers": [{ "key": "Cache-Control", "value": "no-store" }] },
     { "source": "/(screen|admin|recorder|phone|print|digest|app)", "headers": [{ "key": "Cache-Control", "value": "no-store" }] }
   ]
 }

@@ -1,9 +1,8 @@
-﻿2026-10-29 07:32  v3.20 스크린 자료집: 스크린 화면 그대로 한 장씩 묶은 장표판(/digest · /digest.pdf) + 글판(?page=digest · /app/digest)
+﻿2026-10-29 07:36  v3.20.1 콘솔 보고서 탭에 스크린 자료집 PDF 두 벌 내려받기 (화면 그대로 판 /digest.pdf · 글판 /digest_text.pdf)
 
-- 장표판: 행사 최종 스냅샷으로 스크린 장 42개(오프닝 영상·당일 불참 축사·리허설 커뮤니티 띠 제외)를 1920×1080 으로 찍어 스토리보드 구조(가로 A4 한 쪽에 한 장 + 장면·번호·시각·설명)로 — deploy_vercel/digest.html, 스크린_자료집_20261028.pdf → /digest.pdf
-- 글판 Digest.html: 같은 내용을 당일 흐름 순 읽기 문서로(오늘의 한줄 전체 · 명단과 이름 찾기 · 테이블별 정리 등), 서버 자료를 읽어 그림, 세로 A4 「PDF로 저장」
-- 뼈대: Code.gs doGet digest · Common pageUrl · 빌드 목록 · .claspignore · vercel.json(/digest.pdf no-store) · Start 카드 · Admin 보고서 탭 링크 · 배포.ps1 PDF 복사 · .gitignore(루트 PDF)
-- 문서: 배포정보 @67~@73 · 설치 가이드(10/28 식순 · v3.19.5~v3.20) · README
+- Admin 「보고서(PDF)」 탭: 「스크린 자료집」 카드 — PDF 화면 그대로 판 · PDF 글판 · 웹으로 넘겨 보기. PUB_SITE = CFG.site 또는 Vercel 주소
+- 배포.ps1: 스크린_자료집_글판_20261028.pdf → deploy_vercel/digest_text.pdf 복사 · vercel.json no-store
+- 문서: 배포정보 @74 · 설치 가이드
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
 
