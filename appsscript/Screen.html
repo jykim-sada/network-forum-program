@@ -26,6 +26,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:var(--gg-d);color:var(
 .s-head:empty{padding:clamp(8px,1.4vh,16px) 0 0}   /* 머리 글이 없는 장(등록 벽 · 발표자 · 마지막 장)은 여백만 조금 */
 .s-head .chip{background:#fff;color:var(--gg);border-radius:.4em;padding:.28em .9em;font-weight:600;font-size:clamp(18px,2.8vh,34px);white-space:nowrap}
 .s-head .ev{color:var(--mut)}
+.s-head .chip.chip-xl{font-size:clamp(34px,6.2vh,76px);padding:.22em .8em;border-radius:.35em}   /* 인사말·축사 장의 칩 — 사용자 요청(좀 크게, v3.19.5) */
 .s-head .hl{display:flex;align-items:center;gap:12px;min-width:0}
 .s-body{flex:1;padding:clamp(8px,1.4vh,18px) clamp(26px,4vw,64px) clamp(30px,6.5vh,80px);display:flex;flex-direction:column;justify-content:center;position:relative;min-height:0}   /* 아래 여백을 크게: LED 아래쪽은 단상에 가려 글이 위쪽에 모이도록 (v3.19) */
 .s-body.pos-top{justify-content:flex-start}.s-body.pos-middle{justify-content:center}.s-body.pos-bottom{justify-content:flex-end}
@@ -698,7 +699,7 @@ function render() {
     foot = '<span>1부 시작 · 오프닝 영상</span>' + pageNo;
   } else if (cur.type === 'greet') {   // 한 장에 한 명: 종류 표시 → 소속(크게) → 이름(더 크게). 설명 줄 없음 (v3.3)
     var G = greetList(); var gi = Number(cur.i) || 0; var g = G[gi] || null; var kind = g ? greetKind(g, gi) : 'greet'; var kl = kind === 'cong' ? '축사' : '인사말';
-    head = chip(kl);   // 오른쪽 위 「1부 · n / N」 삭제 (v3.19)
+    head = '<span class="chip chip-xl">' + kl + '</span>';   // 인사말·축사 3장은 왼쪽 위 칩을 크게 (v3.19.5) · 「1부 · n / N」 은 v3.19 에서 삭제
     body = '<div class="gone ' + kind + '"><div class="gk">' + kl + '</div>' +
       (g ? '<div class="go' + (g.title ? '' : ' none') + '">' + (esc(g.title) || '소속 미입력') + '</div><div class="gn">' + (esc(g.name) || '<span class="none">이름 미입력</span>') + '</div>'
          : '<div class="go none">명단 미입력 · 콘솔 「프로그램」 탭에서 입력</div>') + '</div>';
