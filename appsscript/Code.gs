@@ -774,7 +774,7 @@ function analyzeWithClaude_(key, records, lines) {
   var userPrompt = '아래는 「' + EVENT.name + '」 참여토론(주제 4개, 9테이블, 2라운드) 기록과 등록 때 참가자들이 무기명으로 적은 「오늘의 한줄」(' + lines.length + '건)입니다. 테이블의 기록은 1라운드·2라운드 참가자가 다르므로 두 라운드를 합쳐 그 테이블(주제)의 이야기로 정리합니다.\n\n' +
     blocks.join('\n\n') + '\n\n### 오늘의 한줄 (질문: ' + PROMPT + ')\n' + (lines.length ? lines.map(function (o) { return '- ' + o.text + (o.table ? ' [테이블 ' + o.table + ']' : ''); }).join('\n') : '(없음)') + '\n\n' +
     '다음을 JSON 으로만 답하십시오.\n' +
-    '1) tables: 9개 테이블 각각 { t(테이블 번호 1~9, 빠짐없이), one(그 테이블의 이야기를 대표하는 한 문장, 70자 이내), points(그 테이블 8명이 나눈 서로 다른 이야기를 빠짐없이 4~6개. 겹치는 이야기는 하나로 합치고, 기록이 짧으면 3개까지 줄여도 됨. 각 60자 이내 개조식으로 누가 어떤 경험·생각을 말했는지가 드러나게), wish(경기도·시군에 바라는 것, 80자 이내. 「바라는 것」 칸을 우선 쓰고 없으면 기록에서 찾되, 없으면 빈 문자열), kw(그 테이블 기록에서 자주 나온 핵심어 4~6개. 각 2~8자의 명사형으로 — 예: "돌봄 품앗이", "아침 루틴", "모임 소개 영상". 서술어·조사 없이, 기록이 비어 있으면 빈 배열) }. 기록이 비어 있는 테이블은 one 에 "기록 없음" 이라고만 쓰고 points 는 빈 배열.\n' +
+    '1) tables: 9개 테이블 각각 { t(테이블 번호 1~9, 빠짐없이), one(그 테이블의 이야기를 대표하는 한 문장, 70자 이내), points(그 테이블 8명이 나눈 서로 다른 이야기를 빠짐없이 4~6개. 겹치는 이야기는 하나로 합치고, 기록이 짧으면 3개까지 줄여도 됨. 각 60자 이내 개조식으로 누가 어떤 경험·생각을 말했는지가 드러나게), wish(경기도·시군에 바라는 것, 80자 이내. 「바라는 것」 칸이 있으면 그것을 다듬어 쓰고, 비어 있으면 그 테이블의 1·2라운드 기록에서 참가자들이 필요하다고 한 것·어려움을 근거로 경기도·시군이 할 수 있는 일을 반드시 1~2가지로 정리해 채움(빈 문자열은 기록 자체가 없을 때만)), kw(그 테이블 기록에서 자주 나온 핵심어 4~6개. 각 2~8자의 명사형으로 — 예: "돌봄 품앗이", "아침 루틴", "모임 소개 영상". 서술어·조사 없이, 기록이 비어 있으면 빈 배열) }. 기록이 비어 있는 테이블은 one 에 "기록 없음" 이라고만 쓰고 points 는 빈 배열.\n' +
     '2) topics: 주제 4개 각각 { id, sum(그 주제 테이블들의 논의를 관통하는 한 문장, 70자 내외), kw(핵심어 4~6개), sug(경기도에 대한 건의 2~3개, 테이블의 「바라는 것」을 근거로) }.\n' +
     '3) wishes: 9개 테이블의 「바라는 것」을 비슷한 것끼리 묶어 6~9개로 정리. text 는 45자 내외, tables 는 "테이블 1·3" 처럼 근거 테이블.\n' +
     '4) oneline: 오늘의 한줄 전체를 「같은 뜻·같은 맥락」끼리 묶습니다.\n' +
@@ -861,8 +861,10 @@ function recText_(records, t) {
 function tableRule_(records, t) {
   var x = recText_(records, t); var ss = sentences_(x.note); var seen = {};
   var rest = (ss.length > 1 ? ss.slice(1) : ss.slice(0, 1)).filter(function (p) { var k = p.replace(/\s+/g, ''); if (seen[k]) return false; seen[k] = true; return true; });
-  return { t: t, one: cut_(ss[0] || '', 70), points: rest.slice(0, 6).map(function (p) { return cut_(p, 90); }), wish: cut_(x.wish, 80), kw: tableKw_([x.note, x.wish], 6) };   // 핵심은 한 문장(첫 문장) 다음 문장들로 — 첫 문장이 두 번 보이지 않게 · kw: 자주 나온 말 (v3.10.3)
+  return { t: t, one: cut_(ss[0] || '', 70), points: rest.slice(0, 6).map(function (p) { return cut_(p, 90); }), wish: cut_(x.wish || wishFromNote_(x.note), 80), kw: tableKw_([x.note, x.wish], 6) };   // 바라는 것이 비면 기록에서 뽑는다 (v3.19.9)   // 핵심은 한 문장(첫 문장) 다음 문장들로 — 첫 문장이 두 번 보이지 않게 · kw: 자주 나온 말 (v3.10.3)
 }
+/* 「바라는 것」이 비어 있을 때 기록에서 요구·필요가 드러난 문장을 뽑는다 (10/28 현장 요청: 안 쓴 테이블도 분석이 채움, v3.19.9) */
+function wishFromNote_(note) { var ss = sentences_(String(note || '')); var hit = ss.filter(function (p) { return /바라|필요|있으면|해 주|해주|지원|도움|마련|늘려|열어|연결|정보|공간|프로그램|제도|예산/.test(p); }); return hit.length ? hit.slice(0, 2).join(' ') : (ss.length ? ss[ss.length - 1] : ''); }
 /* Claude 결과의 tables 를 9건·번호순으로 맞추고, 빠진 테이블은 규칙으로 채운다 */
 function fixTables_(tables, records) {
   var by = {}; (Array.isArray(tables) ? tables : []).forEach(function (x) { if (isObj_(x) && isInt_(Number(x.t), 1, TABLE_COUNT)) by[Number(x.t)] = x; });
@@ -872,7 +874,7 @@ function fixTables_(tables, records) {
     if (!x) { out.push(tableRule_(records, t)); continue; }
     var kw = (Array.isArray(x.kw) ? x.kw : []).map(function (k) { return str_(k, 16).trim(); }).filter(Boolean).slice(0, 6);
     if (!kw.length) { var rt = recText_(records, t); kw = tableKw_([rt.note, rt.wish], 6); }   // Claude 가 안 주면 규칙으로 (v3.10.3)
-    out.push({ t: t, one: str_(x.one, 120), points: (Array.isArray(x.points) ? x.points : []).slice(0, 6).map(function (p) { return str_(p, 120); }), wish: str_(x.wish, 160), kw: kw });
+    out.push({ t: t, one: str_(x.one, 120), points: (Array.isArray(x.points) ? x.points : []).slice(0, 6).map(function (p) { return str_(p, 120); }), wish: str_(x.wish, 160).trim() || cut_(wishFromNote_(recText_(records, t).note), 80), kw: kw });   // Claude 가 비워 보내면 기록에서 (v3.19.9)
   }
   return out;
 }
