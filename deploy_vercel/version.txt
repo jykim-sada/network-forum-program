@@ -1,8 +1,7 @@
-﻿2026-10-29 07:36  v3.20.1 콘솔 보고서 탭에 스크린 자료집 PDF 두 벌 내려받기 (화면 그대로 판 /digest.pdf · 글판 /digest_text.pdf)
+﻿2026-10-29 10:09  v3.20.2 콘솔 모든 탭 위에 「스크린 자료집」 단추 줄 (PDF 화면 그대로 · PDF 글판 · 웹으로 넘겨 보기)
 
-- Admin 「보고서(PDF)」 탭: 「스크린 자료집」 카드 — PDF 화면 그대로 판 · PDF 글판 · 웹으로 넘겨 보기. PUB_SITE = CFG.site 또는 Vercel 주소
-- 배포.ps1: 스크린_자료집_글판_20261028.pdf → deploy_vercel/digest_text.pdf 복사 · vercel.json no-store
-- 문서: 배포정보 @74 · 설치 가이드
+- Admin: 머리띠 바로 아래 .docsbar — 어느 탭에서든 자료집 PDF 두 벌과 웹 페이지로 바로 감 (보고서 탭 카드는 그대로)
+- 문서: 배포정보 @75
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
 

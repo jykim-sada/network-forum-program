@@ -30,6 +30,7 @@ h3 small{font-weight:400;color:var(--muted);margin-left:6px}
 .tabs button{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:6px 12px}
 .tabs button.on{background:#fff;border-color:#fff;color:var(--gg);font-weight:600}
 .status{margin-left:auto;display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:13px}
+.docsbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 16px;background:#EAF0FA;border-bottom:1px solid var(--line);font-size:13px}.docsbar b{color:var(--gg);margin-right:4px}.docsbar .note{color:var(--muted)}   /* 자료집 단추 줄 — 모든 탭에서 보임 (v3.20.2) */
 .status b{font-size:15px}
 .pill{display:inline-block;border-radius:999px;padding:2px 10px;font-size:12px;background:var(--soft);color:var(--ink);white-space:nowrap}
 .pill.ok{background:#E0F5F2;color:var(--ok)}.pill.warn{background:var(--gold-bg);color:var(--gold)}.pill.wait{background:var(--soft);color:var(--muted)}.pill.live{background:#fff;color:var(--gg);font-weight:600}.pill.tn{background:var(--gg);color:#fff}
@@ -169,6 +170,7 @@ a.btn{text-decoration:none;display:inline-block}
   <nav class="tabs" id="tabs"><button data-v="control">진행·스크린 제어</button><button data-v="program">프로그램</button><button data-v="roster">참가자 명단</button><button data-v="oneline">오늘의 한줄</button><button data-v="tables">테이블 현황</button><button data-v="analysis">분석·결과</button><button data-v="report">보고서(PDF)</button></nav>
   <div class="status" id="status"></div>
 </header>
+<div class="docsbar noprint" id="docsBar"></div>
 <main>
   <section class="view" id="view-control"></section>
   <section class="view" id="view-program"></section>
@@ -554,6 +556,7 @@ function render() {
 }
 document.getElementById('brand').innerHTML = brandHTML('ciband');
 document.getElementById('evline').textContent = EVENT.name + ' · 발표보드 백단';
+document.getElementById('docsBar').innerHTML = '<b>스크린 자료집</b><a class="btn sm" href="' + PUB_SITE + '/digest.pdf" target="_blank">PDF · 화면 그대로 (가로 A4)</a><a class="btn sm ghost" href="' + PUB_SITE + '/digest_text.pdf" target="_blank">PDF · 글판 (세로 A4)</a><a class="btn sm ghost" href="' + pageUrl('digest') + '" target="_blank">웹으로 넘겨 보기</a><span class="note">행사 뒤 만든 완성본 · 「보고서(PDF)」 탭에도 있습니다</span>';   // 모든 탭 위에 (v3.20.2)
 /* 라운드 중 1초 틱: 타이머 숫자만 바꾸고(미리보기 iframe 이 매초 다시 뜨지 않게), 1분에 한 번 전체를 다시 그린다 */
 setInterval(function () { var ph = phase(); if (!((ph === 'r1' || ph === 'r2') && L.view === 'control' && S.state && !typing())) return; var el = document.querySelector('#view-control .timer'); var rs = roundState(); if (el && rs && el.firstChild && el.firstChild.nodeType === 3 && rs.secLeft % 60 !== 0) { el.firstChild.nodeValue = pad(Math.floor(rs.secLeft / 60)) + ':' + pad(rs.secLeft % 60) + ' '; } else render(); }, 1000);
 </script>
