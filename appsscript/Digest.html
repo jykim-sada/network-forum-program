@@ -187,6 +187,18 @@ table.tb td.at{color:var(--muted);white-space:nowrap;width:4.2em;font-variant-nu
 .tbl .seat{margin-top:16px;border-top:1px solid var(--line);padding-top:8px;font-size:10.5pt;color:#333}
 .tbl .seat b{color:var(--gg);margin-right:6px}.tbl .seat div{margin:2px 0}
 .tbl .pre{font-size:11pt;color:#333;white-space:pre-wrap}
+/* 테이블별 기록 원문 */
+.rec-tbl{padding:14px 0 6px;border-top:1px solid var(--line)}
+.rec-tbl .hd{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.rec-tbl .hd .tno{font-size:17pt;font-weight:700;color:var(--gg)}
+.rec-tbl .hd .hall{font-size:10.5pt;color:var(--muted)}
+.rec-r{margin:8px 0 14px}
+.rec-r h4{font-size:12pt;color:var(--gg);margin:0 0 6px;display:flex;gap:10px;align-items:baseline;break-after:avoid;page-break-after:avoid}
+.rec-r h4 small{color:var(--muted);font-weight:400;font-size:9.5pt}
+.rec-note{white-space:pre-wrap;font-size:11pt;line-height:1.65;margin:0;padding:10px 14px;border:1px solid var(--line);border-radius:8px;background:#fff;orphans:3;widows:3}
+.rec-wish{border-left:5px solid var(--gg);background:var(--soft);padding:8px 14px;margin:8px 0 0;border-radius:0 8px 8px 0;break-inside:avoid;page-break-inside:avoid}
+.rec-wish b{display:block;color:var(--teal-t);font-size:10pt;letter-spacing:.06em}
+.rec-wish p{margin:2px 0 0;white-space:pre-wrap;font-size:11pt;line-height:1.55}
 /* 포럼의 키워드 */
 .cloud{text-align:center;padding:10px 0}
 .cloud .cl-t{font-size:20pt;font-weight:700;color:var(--gg);letter-spacing:-.02em;line-height:1.25}
@@ -213,6 +225,7 @@ table.tb td.at{color:var(--muted);white-space:nowrap;width:4.2em;font-variant-nu
   .pg{border-top:0;padding:0;break-before:page;page-break-before:always}
   .pg.first{break-before:auto;page-break-before:auto}
   .tbl+.tbl{break-before:page;page-break-before:always;border-top:0;padding-top:0}
+  .rec-tbl+.rec-tbl{break-before:page;page-break-before:always;border-top:0;padding-top:0}   /* 기록 원문도 테이블마다 새 쪽 */
   .cover{min-height:258mm}
   .ending{min-height:258mm}
   #s7{break-before:auto;page-break-before:auto;padding-top:18px}   /* 묶음 상세는 요약에 이어서 (반쪽 방지) */
@@ -257,8 +270,9 @@ function sections() {
     { id: 's6', t: '결과공유 ① 오늘의 한줄 요약', s: o.groups.length + '개 묶음 · 자주 나온 말' },
     { id: 's7', t: '결과공유 ② 한줄 묶음 ' + o.groups.length + '개', s: '요약 · 예시 · 대표 의견' },
     { id: 's8', t: '결과공유 ③ 테이블별 정리', s: '테이블 9 — 한 문장 · 핵심 · 경기도에 바라는 것 · 자주 나온 말' },
-    { id: 's9', t: '결과공유 ④ 포럼의 키워드', s: '오늘의 한줄과 토론에서 나온 말' },
-    { id: 's10', t: '고맙습니다', s: '마지막 장' }];
+    { id: 's9', t: '결과공유 ④ 테이블별 기록 원문', s: '기록자가 적은 1·2라운드 기록과 경기도에 바라는 것, 원문 그대로' },
+    { id: 's10', t: '결과공유 ⑤ 포럼의 키워드', s: '오늘의 한줄과 토론에서 나온 말' },
+    { id: 's11', t: '고맙습니다', s: '마지막 장' }];
 }
 
 /* ---- 표지 ---- */
@@ -274,7 +288,7 @@ function coverHTML() {
 /* ---- 차례 · 오늘의 흐름 ---- */
 function tocHTML() {
   var secs = sections(); var o = onelineSummary();
-  var flow = { reg: '오늘의 한줄 벽 — 「' + PROMPT + '」 · QR · 무기명 (1절)', part1: '인사말·축사 → 발표 3편 → 기념촬영 → 1라운드 좌석 안내 → 다과 안내 (2절)', p2: '2부 간지 → 토론 주제 4개 (3절)', r1: '진행 화면 — 남은 시간 · 진행 현황·명단·수치·트렌드 순환 (4·5절)', r2: '2라운드 이동 안내 → 진행 화면 (4·5절)', collect: '토론 결과 종합 중 — 입력 마감 → 분석 실행 → 발표 화면 준비 · 수치 표와 트렌드 카드 교대 (5절)', share: '오늘의 한줄 요약 → 묶음 ' + o.groups.length + ' → 테이블 9 → 포럼의 키워드 → 고맙습니다 (6~10절)', close: '「고맙습니다」 (10절)', end: '' };
+  var flow = { reg: '오늘의 한줄 벽 — 「' + PROMPT + '」 · QR · 무기명 (1절)', part1: '인사말·축사 → 발표 3편 → 기념촬영 → 1라운드 좌석 안내 → 다과 안내 (2절)', p2: '2부 간지 → 토론 주제 4개 (3절)', r1: '진행 화면 — 남은 시간 · 진행 현황·명단·수치·트렌드 순환 (4·5절)', r2: '2라운드 이동 안내 → 진행 화면 (4·5절)', collect: '토론 결과 종합 중 — 입력 마감 → 분석 실행 → 발표 화면 준비 · 수치 표와 트렌드 카드 교대 (5절)', share: '오늘의 한줄 요약 → 묶음 ' + o.groups.length + ' → 테이블 9 → 포럼의 키워드 → 고맙습니다 (6~11절 · 기록 원문은 9절)', close: '「고맙습니다」 (11절)', end: '' };
   return '<section class="pg"><div class="two"><div class="toc"><h3>차례</h3><ol>' + secs.map(function (s) { return '<li><a href="#' + s.id + '">' + esc(s.t) + '</a><br><small>' + esc(s.s) + '</small></li>'; }).join('') + '</ol></div>' +
     '<div class="tl"><h3>오늘의 흐름 · 그때 스크린에는</h3><table>' + PH.map(function (p) { return '<tr><td class="t">' + esc(p[2]) + '</td><td class="s">' + esc(p[1]) + '</td><td class="w">' + esc(flow[p[0]] || '') + '</td></tr>'; }).join('') + '</table><p class="fn">시각은 식순 기준입니다.</p></div></div></section>';
 }
@@ -365,7 +379,7 @@ function groupsHTML() {
 /* ---- 테이블 정리 (테이블마다 한 쪽) ---- */
 function tablesHTML() {
   var a = S.analysis;
-  var h = '<section class="pg" id="s8">' + secHead(8, '결과공유 · 퍼실리테이터 발표', '테이블별 정리', '', '테이블마다 기록자가 적은 1·2라운드 기록을 정리한 것입니다 — 한 문장 · 핵심(테이블의 서로 다른 이야기, 최대 6가지) · 경기도에 바라는 것 · 자주 나온 말. 아래에 그 테이블에 앉은 분들을 적었습니다.' + (a ? '' : ' (분석 전 — 기록 앞부분을 그대로 보입니다)'));
+  var h = '<section class="pg" id="s8">' + secHead(8, '결과공유 · 퍼실리테이터 발표', '테이블별 정리', '', '테이블마다 기록자가 적은 1·2라운드 기록을 정리한 것입니다 — 한 문장 · 핵심(테이블의 서로 다른 이야기, 최대 6가지) · 경기도에 바라는 것 · 자주 나온 말. 아래에 그 테이블에 앉은 분들을 적었습니다. 기록 원문은 9절에 있습니다.' + (a ? '' : ' (분석 전 — 기록 앞부분을 그대로 보입니다)'));
   h += TABLES.map(function (t) { var tp = tpOf(t), x = tableAnalysis(t); var head = '<div class="hd"><span class="tno">테이블 ' + t + '</span><span class="chip t' + tp.id + '">주제 ' + tp.id + ' · ' + esc(tp.sub) + '</span><span class="hall">' + kq(tp.title) + ' · ' + esc(HALL[t]) + '</span></div>';
     var seat = '<div class="seat">' + [1, 2].map(function (r) { var ns = rosterOf(t, r); return '<div><b>' + r + '라운드</b>' + (ns.length ? esc(ns.join(' · ')) + ' <span style="color:var(--muted)">(' + ns.length + '명)</span>' : '<span style="color:var(--muted)">명단 없음</span>') + '</div>'; }).join('') + '</div>';
     if (!x) { var rr = rec(t, 2).note ? 2 : 1; var note = rec(t, rr).note; return '<div class="tbl t' + tp.id + '">' + head + '<p class="pre">' + (note ? esc(note.slice(0, 600)) + (note.length > 600 ? ' …' : '') : '아직 기록이 없습니다') + '</p>' + seat + '</div>'; }
@@ -373,6 +387,19 @@ function tablesHTML() {
     return '<div class="tbl t' + tp.id + '">' + head + '<div class="body"><div><p class="one">' + (esc(x.one) || '(한 문장 없음)') + '</p>' + (pts.length ? '<ol class="pts">' + pts.map(function (p) { return '<li>' + esc(p) + '</li>'; }).join('') + '</ol>' : '') +
       '<div class="wish"><b>경기도에 바라는 것</b><p>' + (esc(x.wish) || '—') + '</p></div></div>' +
       (kws.length ? '<aside class="kw"><b>자주 나온 말</b>' + kws.map(function (k, i) { return '<span class="k' + (i + 1) + '">' + esc(k) + '</span>'; }).join('') + '</aside>' : '<div></div>') + '</div>' + seat + '</div>'; }).join('');
+  return h + '</section>';
+}
+
+/* ---- 테이블별 기록 원문 (기록자가 적은 글 그대로) ---- */
+function recordsHTML() {
+  var tot = 0; TABLES.forEach(function (t) { [1, 2].forEach(function (r) { tot += rec(t, r).note.length; }); });
+  var h = '<section class="pg" id="s9">' + secHead(9, '결과공유 · 기록자 기록', '테이블별 기록 원문 <small>9테이블 × 2라운드 · ' + tot.toLocaleString('ko-KR') + '자</small>', '', '기록자가 토론 중에 적은 글 그대로입니다(맞춤법·줄바꿈 포함). 8절의 정리는 이 기록을 바탕으로 만들었습니다. 「경기도에 바라는 것」은 기록자가 따로 적은 칸입니다.');
+  h += TABLES.map(function (t) { var tp = tpOf(t);
+    return '<div class="rec-tbl"><div class="hd"><span class="tno">테이블 ' + t + '</span><span class="chip t' + tp.id + '">주제 ' + tp.id + ' · ' + esc(tp.sub) + '</span><span class="hall">' + kq(tp.title) + ' · ' + esc(HALL[t]) + '</span></div>' +
+      [1, 2].map(function (r) { var x = rec(t, r); var at = hm(x.updatedAt); var note = x.note.trim(), wish = x.wish.trim();
+        return '<div class="rec-r"><h4>' + r + '라운드 기록<small>' + (note ? note.length.toLocaleString('ko-KR') + '자' : '기록 없음') + (at ? ' · 마지막 저장 ' + at : '') + '</small></h4>' +
+          (note ? '<p class="rec-note">' + esc(note) + '</p>' : '<p class="src">(기록 없음)</p>') +
+          (wish ? '<div class="rec-wish"><b>경기도에 바라는 것</b><p>' + esc(wish) + '</p></div>' : '') + '</div>'; }).join('') + '</div>'; }).join('');
   return h + '</section>';
 }
 
@@ -385,7 +412,7 @@ function cloudHTML() {
   TOPICS.forEach(function (tp) { var ta = topicAnalysis(tp.id); ((ta && ta.kw) || []).forEach(function (k, i) { add(k, i < 2 ? 3.4 : 2.7, TC[tp.id], 'topic t' + tp.id); }); });
   TABLES.forEach(function (t) { var tp = tpOf(t); tableKeywords(t).forEach(function (k, i) { add(k, i === 0 ? 3.1 : i === 1 ? 2.5 : 1.9, TC[tp.id], 'table t' + tp.id); }); });
   out.sort(function (a, b) { return b.w - a.w || a.t.localeCompare(b.t, 'ko'); });
-  return '<section class="pg" id="s9"><div class="cloud"><div class="cl-t">경기도 중장년 네트워크 포럼의 키워드</div><div class="cl-s">오늘의 한줄 · 9개 테이블 토론에서 나온 말 ' + out.length + '개 · 스크린의 낱말 구름을 인쇄용으로 비중순 정렬했습니다</div>' +
+  return '<section class="pg" id="s10"><div class="cloud"><div class="cl-t">경기도 중장년 네트워크 포럼의 키워드</div><div class="cl-s">오늘의 한줄 · 9개 테이블 토론에서 나온 말 ' + out.length + '개 · 스크린의 낱말 구름을 인쇄용으로 비중순 정렬했습니다</div>' +
     '<div>' + out.map(function (x) { return '<span class="cw ' + x.k + '" style="--cc:' + x.c + ';--on:' + onColor(x.c) + ';font-size:' + (7 + x.w * 1.8).toFixed(1) + 'pt">' + esc(x.t) + '</span>'; }).join('') + '</div>' +
     '<div class="lg"><span><i style="background:#0E4194"></i>채운 칩 = 오늘의 한줄 묶음</span>' + TOPICS.map(function (tp) { return '<span><i style="background:' + TC[tp.id] + '"></i>주제 ' + tp.id + ' ' + esc(tp.sub) + ' (주제·테이블 핵심어)</span>'; }).join('') + '<span><i style="background:#B7C0CF"></i>오늘의 한줄 자주 나온 말</span></div></div></section>';
 }
@@ -393,13 +420,13 @@ function cloudHTML() {
 /* ---- 마무리 ---- */
 function endHTML() {
   var pho = program().photo || {}; var a = S.analysis || {}; var anaAt = hm(st().analyzedAt) || hm(a.at);
-  return '<section class="pg" id="s10"><div class="ending"><div class="ht">' + esc(pho.title || EVENT.name) + '</div><div class="hs">' + esc(pho.sub || '경기 중장년, 경험을 잇고 내일을 묻다') + '</div><div class="thanks">고맙습니다</div>' +
-    '<p class="fin">' + esc(EVENT.date) + ' · ' + esc(EVENT.place) + '<br>이 자료집은 당일 스크린에 표출된 내용을 글로 옮긴 것입니다. 테이블 기록 전문과 주제별 종합·건의사항 종합은 운영진 보고서에 따로 정리됩니다.</p>' +
+  return '<section class="pg" id="s11"><div class="ending"><div class="ht">' + esc(pho.title || EVENT.name) + '</div><div class="hs">' + esc(pho.sub || '경기 중장년, 경험을 잇고 내일을 묻다') + '</div><div class="thanks">고맙습니다</div>' +
+    '<p class="fin">' + esc(EVENT.date) + ' · ' + esc(EVENT.place) + '<br>이 자료집은 당일 스크린에 표출된 내용을 글로 옮기고 테이블별 기록 원문을 붙인 것입니다. 주제별 종합·건의사항 종합은 운영진 보고서에 따로 정리됩니다.</p>' +
     '<p class="pub">' + (anaAt ? '분석 ' + esc(EVENT.date) + ' ' + anaAt + (a.engine ? ' (' + esc(a.engine) + ')' : '') + ' · ' : '') + '자료 개정 ' + (S.rev || 0) + ' · 자료집 생성 ' + esc(new Date().toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })) + '</p></div></section>';
 }
 
 function renderAll() {
-  var parts = [coverHTML(), tocHTML(), linesHTML(), part1HTML(), part2HTML(), rosterHTML(1, true), rosterHTML(2, false), indexHTML(), liveHTML(), onelineHTML(), groupsHTML(), tablesHTML(), cloudHTML(), endHTML()];
+  var parts = [coverHTML(), tocHTML(), linesHTML(), part1HTML(), part2HTML(), rosterHTML(1, true), rosterHTML(2, false), indexHTML(), liveHTML(), onelineHTML(), groupsHTML(), tablesHTML(), recordsHTML(), cloudHTML(), endHTML()];
   document.getElementById('doc').innerHTML = parts.join('');
   document.title = '스크린 자료집 · ' + EVENT.name;
   document.body.setAttribute('data-ready', '1');
